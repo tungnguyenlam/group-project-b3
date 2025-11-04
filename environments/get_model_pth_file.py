@@ -21,16 +21,24 @@ path_file_dict = {
     'unet': "https://drive.google.com/file/d/107dMAAXMIk3WNWLxENAZpiy7lrovEoXZ/view?usp=sharing"
 }
 
+output_filename_dict = {
+    'yolo_scratch': 'yolo_best.pth',
+    'detectron2': 'model_final.pth',
+    'deeplabv3': 'best_deeplabv3_model.pth',
+    'unet': 'best_unet_model.pth'
+}
+
 for key in model_dir_dict.keys():
     dst_dir = model_dir_dict[key]
     url = path_file_dict[key]
+    output_file = os.path.join(dst_dir, output_filename_dict[key])
     
     os.makedirs(dst_dir, exist_ok=True)
     
     print(f"Downloading {key}...")
     saved_path = gdown.download(
         url=url,
-        output=dst_dir,
+        output=output_file,
         fuzzy=True,
         quiet=False
         # resume=False  # Force overwrite/re-download
