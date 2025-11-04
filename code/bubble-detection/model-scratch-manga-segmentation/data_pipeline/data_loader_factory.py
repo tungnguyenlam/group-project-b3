@@ -2,6 +2,39 @@ import torch
 from .manga_dataset import MangaDataset
 from . import transforms as T
 
+def collate_fn(batch):
+    """
+    Custom collate function that:
+    1. Pads images to same size
+    2. Keeps targets as list (don't stack - different number of objects)
+    """
+    images, targets = tuple(zip(*batch))
+
+    # Find max dimensions in the batch
+    max_height = max([img.shape[1] for img in images])
+    max_width = max([img.shape[2] for img in images])
+
+    # Pad all images to max dimensions
+    padded_images = []
+    for img in images:
+        # img shape: [C, H, W]
+        pad_bottom = max_height - img.shape[1]
+        pad_right = max_width - img.shape[2]
+
+        # Pad: (left, right, top, bottom) for last 2 dimensions
+        padded_img = torch.nn.functional.pad(
+            img, 
+            (0, pad_right, 0, pad_bottom), 
+            mode='constant', 
+            value=0  # Pad with black (0) for images
+        )
+        padded_images.append(padded_img)
+
+    # Stack images into batch tensor [B, C, H, W]
+    images = torch.stack(padded_images, dim=0)
+
+    return images, targets
+
 def get_transforms(is_train):
     transform_list = []
     transform_list.append(T.Resize(min_size=640, max_size=1024))
@@ -31,39 +64,6 @@ class DataLoaderFactory:
             split=split, 
             transforms=get_transforms(is_train=is_train)
         )
-
-        def collate_fn(batch):
-            """
-            Custom collate function that:
-            1. Pads images to same size
-            2. Keeps targets as list (don't stack - different number of objects)
-            """
-            images, targets = tuple(zip(*batch))
-
-            # Find max dimensions in the batch
-            max_height = max([img.shape[1] for img in images])
-            max_width = max([img.shape[2] for img in images])
-
-            # Pad all images to max dimensions
-            padded_images = []
-            for img in images:
-                # img shape: [C, H, W]
-                pad_bottom = max_height - img.shape[1]
-                pad_right = max_width - img.shape[2]
-
-                # Pad: (left, right, top, bottom) for last 2 dimensions
-                padded_img = torch.nn.functional.pad(
-                    img, 
-                    (0, pad_right, 0, pad_bottom), 
-                    mode='constant', 
-                    value=0  # Pad with black (0) for images
-                )
-                padded_images.append(padded_img)
-
-            # Stack images into batch tensor [B, C, H, W]
-            images = torch.stack(padded_images, dim=0)
-    
-            return images, targets
     
         data_loader = torch.utils.data.DataLoader(
             dataset,

@@ -2,11 +2,13 @@ import torch
 import torch.optim as optim
 import argparse
 import os
+import sys
 from tqdm import tqdm
 from torch.optim.lr_scheduler import OneCycleLR
 from torch.amp import GradScaler, autocast
 import torchvision
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from data_pipeline.data_loader_factory import DataLoaderFactory, get_transforms
 from architecture_yolo.yolo_seg import YOLOSeg
 from post_process_yolo.evaluation_metric import MetricsCalculator
@@ -564,10 +566,16 @@ def main(args):
 
 
 if __name__ == "__main__":
+    cwd = os.getcwd()
+    if not cwd.endswith('bubble-segmentation-final-deep-learning'):
+        raise ValueError('To run this you should be in the bubble-segmentation-final-deep-learning directory')
+    JSON_DIR = os.path.join(cwd, 'data', 'MangaSegmentation', 'jsons_processed')
+    IMAGE_ROOT = os.path.join(cwd, 'data', 'Manga109_released_2023_12_07', 'images')
+    OUTPUT_DIR = os.path.join(cwd, 'output', 'bubble-detection', 'model-scratch-manga-segmentation', 'yolo_outputs')
     parser = argparse.ArgumentParser(description="YOLO-Seg Training Script")
-    parser.add_argument("--json-dir", type=str, default='MangaSegmentation/jsons_processed')
-    parser.add_argument("--image-root", type=str, default='Manga109_released_2023_12_07/Manga109_released_2023_12_07/images')
-    parser.add_argument("--output-dir", type=str, default="./outputs_yolo")
+    parser.add_argument("--json-dir", type=str, default=JSON_DIR)
+    parser.add_argument("--image-root", type=str, default=IMAGE_ROOT)
+    parser.add_argument("--output-dir", type=str, default=OUTPUT_DIR)
     parser.add_argument("--num-classes", type=int, default=2, help="Number of classes (counted background)")
     parser.add_argument("--batch-size", type=int, default=16, help="Batch size for training")
     parser.add_argument("--eval-batch-size", type=int, default=4, help="Batch size for evaluation to save VRAM")

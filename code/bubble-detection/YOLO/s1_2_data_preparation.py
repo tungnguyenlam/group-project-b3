@@ -26,7 +26,7 @@ from datetime import datetime
 # Configuration
 # ===================================================================
 
-END_WITH_LOCAL = 'characters-and-dialouges-association-in-comics'
+END_WITH_LOCAL = 'bubble-segmentation-final-deep-learning'
 
 os.environ['PATH'] = f"/root/.cargo/bin:{os.environ['PATH']}"
 

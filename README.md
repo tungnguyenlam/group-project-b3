@@ -3,7 +3,7 @@
 ## Folder structure
 
 ```
-characters-and-dialouges-association-in-comics
+bubble-segmentation-final-deep-learning
 ├── data
 │ ├── DATA.md
 │ ├── Manga109
@@ -17,9 +17,20 @@ characters-and-dialouges-association-in-comics
 
 ## Guide to set-up
 
-- Make sure you are in **.../characters-and-dialouges-association-in-comics/** (the folder containing this README).
+- Make sure you are in **.../bubble-segmentation-final-deep-learning/** (the folder containing this README).
 
-### For docker (recommended)
+### For running on local (MacOS, Linux, NO Windows) (recommended)
+
+- If you use conda
+
+```bash
+conda env create -f ./environments/py11.yml
+conda activate py11
+```
+
+- If you dont use conda, read the yml files and install each package by hand, since pip install requirement.txt is not supported
+
+### For docker
 
 - Build the image (Use whatever image name you want, here we use comical ^\_^)
 
@@ -32,21 +43,10 @@ docker buildx build -t comical .
 - Run the image and mount the current repo to /workspace/ in the docker container, changes in /workspace will get reflected outside (on host machine)
 
 ```bash
-docker run -it -p 8080:8080 -v "$(pwd):/characters-and-dialouges-association-in-comics" comical
+docker run -it -p 8080:8080 -v "$(pwd):/bubble-segmentation-final-deep-learning" comical
 ```
 
 - Open `http://localhost:8080` to access jupyterlab hosted on the docker container
-
-### For running on local (MacOS, Linux, NO Windows)
-
-- If you use conda
-
-```bash
-conda env create -f ./environments/py11.yml
-conda activate py11
-```
-
-- If you dont use conda, read the yml files and install each package by hand, since pip install requirement.txt is not supported
 
 ### Download the dataset
 

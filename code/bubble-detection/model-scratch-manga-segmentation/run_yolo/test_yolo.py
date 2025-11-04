@@ -2,6 +2,7 @@ import torch
 from torch.amp import autocast
 import argparse
 import os
+import sys
 import json
 from tqdm import tqdm
 import numpy as np
@@ -9,6 +10,7 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from pycocotools import mask as mask_util
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from data_pipeline.data_loader_factory import DataLoaderFactory
 from architecture_yolo.yolo_seg import YOLOSeg
 from post_process_yolo.processor import PostProcessorV2
@@ -244,12 +246,16 @@ def main(args):
 if __name__ == "__main__":
     cwd = os.getcwd()
     if not cwd.endswith('bubble-segmentation-final-deep-learning'):
-        raise ValueError('To run this ')
+        raise ValueError('To run this you should be in the bubble-segmentation-final-deep-learning directory')
+    JSON_DIR = os.path.join(cwd, 'data', 'MangaSegmentation', 'jsons_processed')
+    IMAGE_ROOT = os.path.join(cwd, 'data', 'Manga109_released_2023_12_07', 'images')
+    MODEL_DIR = os.path.join(cwd, 'models', 'bubble-detection', 'model-scratch-manga-segmentation')
+    os.makedirs(MODEL_DIR, exist_ok=True)
+    MODEL_PATH = os.path.join(MODEL_DIR, 'yolo_seg_best.pth')
     parser = argparse.ArgumentParser(description="YOLO-Seg Evaluation with COCOeval")
-    
-    parser.add_argument("--json-dir", type=str, default='MangaSegmentation/jsons_processed')
-    parser.add_argument("--image-root", type=str, default='Manga109_released_2023_12_07/Manga109_released_2023_12_07/images')
-    parser.add_argument("--model-path", type=str, required=True, help="Path to the trained .pth model file.")
+    parser.add_argument("--json-dir", type=str, default=JSON_DIR)
+    parser.add_argument("--image-root", type=str, default=IMAGE_ROOT)
+    parser.add_argument("--model-path", type=str, required=True, help="Path to the trained .pth model file.", default=MODEL_PATH)
     parser.add_argument("--num-classes", type=int, default=2)
     parser.add_argument("--batch-size", type=int, default=4, help="Reduce this if you encounter Out-Of-Memory errors.")
     parser.add_argument("--resize-batch-size", type=int, default=16, help="Process N mask at a time for resizing mask")

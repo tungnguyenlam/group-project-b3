@@ -36,7 +36,7 @@ import gc
 # Configuration
 # ===================================================================
 
-END_WITH_LOCAL = 'characters-and-dialouges-association-in-comics'
+END_WITH_LOCAL = 'bubble-segmentation-final-deep-learning'
 
 BASE_DIR = os.getcwd()
 

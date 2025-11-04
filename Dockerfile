@@ -1,6 +1,6 @@
 FROM continuumio/miniconda3:25.3.1-1
 
-WORKDIR /characters-and-dialouges-association-in-comics
+WORKDIR /bubble-segmentation-final-deep-learning
 
 RUN apt-get update && apt-get install -y git curl wget unzip && apt-get clean
 RUN pip install gdown
