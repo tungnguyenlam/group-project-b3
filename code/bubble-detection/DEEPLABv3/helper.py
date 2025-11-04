@@ -35,6 +35,7 @@ class MangaBubbleDataset(Dataset):
         for a in self.annotations:
             img_id = a["image_id"]
             if img_id not in self.annos_by_id:
+                # create a list to store annotations for each image id
                 self.annos_by_id[img_id] = []
             self.annos_by_id[img_id].append(a)
     
@@ -52,25 +53,26 @@ class MangaBubbleDataset(Dataset):
         if not os.path.exists(img_path):
             raise FileNotFoundError(f"Image not found: {img_path}")
         
+        # convert image to RGB (3 channels)
         img = Image.open(img_path)
         if img.mode != "RGB":
             img = img.convert("RGB")
         
-        # Lấy kích thước gốc
+        # get the original size
         orig_width = img_info["width"]
         orig_height = img_info["height"]
         
-        # Resize image
+        # Resize image to (256,256)
         img = img.resize(self.img_size)
         
-        # Tạo empty mask
+        # create an empty mask
         mask = np.zeros((self.img_size[1], self.img_size[0]), dtype=np.uint8)
         
-        # Tính scale factor
+        # Calculate scale factor
         scale_x = self.img_size[0] / orig_width
         scale_y = self.img_size[1] / orig_height
         
-        # Vẽ polygon mask từ annotations
+        # Draw polygon mask from annotations
         if img_id in self.annos_by_id:
             for ann in self.annos_by_id[img_id]:
                 segs = ann.get("segmentation", [])
@@ -78,33 +80,44 @@ class MangaBubbleDataset(Dataset):
                     continue
                 
                 for seg in segs:
-                    # seg là list [x1,y1,x2,y2,...,xn,yn]
+                    """
+                    seg= list [x1,y1,x2,y2,...,xn,yn]
+                    reshape(-1,2)-> array([[x1,y1],[x2,y2],...,[xn,yn]])
+                    each anchor point has 2 values x & y
+                    -1 is a sign for pytorch to calculate the rest by itself
+                    """
                     poly = np.array(seg, dtype=np.float32).reshape(-1, 2)
+
                     
                     # Scale polygon theo resize
                     poly[:, 0] *= scale_x
                     poly[:, 1] *= scale_y
                     
                     # Vẽ polygon lên mask
+                    # giá trị fill= 1
                     cv2.fillPoly(mask, [poly.astype(np.int32)], 1)
         
         # Apply transform cho image
         if self.transform:
             img = self.transform(img)
         else:
-            # Nếu không có transform, convert sang tensor
+            # if there's no transformation, convert image to tensor
             img = transforms.ToTensor()(img)
         
         # Convert mask → tensor [1, H, W]
+        # unsqueeze: used to add a new dimension
         mask = torch.tensor(mask, dtype=torch.float32).unsqueeze(0)
         
         return img, mask
 
 
 def normalize_series_name(name):
+    # replace "'s" in the series name to match with json files
     name = name.replace("'s", "")
+    # join after filtering & keep alphanumeric, underscore, hyphen
     return ''.join(c for c in name if c.isalnum() or c in ["_", "-"])
 
+# a function to gather multiple json files into one keeping category_id=5 and convert to 1
 def gather_json(series_list, keep_cat_id=5, mask_dir="./masks"):
     combined_data = {
         "images": [],
@@ -119,6 +132,9 @@ def gather_json(series_list, keep_cat_id=5, mask_dir="./masks"):
     series_list = list(dict.fromkeys(series_list))
     print(f" Processing {len(series_list)} unique series...\n")
     
+    #start from 1 not 0
+    # idx= index starts from 1
+    # s= series in series_list
     for idx, s in enumerate(series_list, 1):
         print(f"[{idx}/{len(series_list)}] Processing series: {s}")
         
@@ -141,7 +157,7 @@ def gather_json(series_list, keep_cat_id=5, mask_dir="./masks"):
         print(f"   Total images in JSON: {len(images)}")
         print(f"   Total annotations in JSON: {len(annotations)}")
         
-        # STEP 1: Tìm images nào có annotation category keep_cat_id
+        # find images with annotation: category keep_cat_id (=5)
         img_has_target_ann = set()
         for ann in annotations:
             if ann["category_id"] == keep_cat_id:
@@ -149,14 +165,14 @@ def gather_json(series_list, keep_cat_id=5, mask_dir="./masks"):
         
         print(f"  Images with category {keep_cat_id}: {len(img_has_target_ann)}")
         
-        # STEP 2: CHỈ thêm images có trong img_has_target_ann
+        # Only add images in img_has_target_ann
         img_id_map = {}
         added_imgs = 0
         
         for img in images:
             old_id = img["id"]
             
-            # CRITICAL: Skip nếu image không có annotation category 5
+            # CRITICAL: Skip if the image has no target annotation
             if old_id not in img_has_target_ann:
                 continue
             
@@ -176,7 +192,7 @@ def gather_json(series_list, keep_cat_id=5, mask_dir="./masks"):
         
         print(f"  Added {added_imgs} images (filtered)")
         
-        # STEP 3: Add annotations
+        # Add annotations
         cat5_count = 0
         skipped_count = 0
         
