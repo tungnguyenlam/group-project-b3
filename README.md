@@ -1,4 +1,4 @@
-# Characters and Dialouges Association in Comics
+# Bubble Segmentation 
 
 ## Folder structure
 
@@ -19,7 +19,7 @@ bubble-segmentation-final-deep-learning
 
 - Make sure you are in **.../bubble-segmentation-final-deep-learning/** (the folder containing this README).
 
-### For running on local (MacOS, Linux, NO Windows) (recommended)
+### For running on local (MacOS, Linux, WSL, NO Windows) (recommended)
 
 - If you use conda
 
