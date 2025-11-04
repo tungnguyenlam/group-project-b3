@@ -571,7 +571,7 @@ if __name__ == "__main__":
         raise ValueError('To run this you should be in the bubble-segmentation-final-deep-learning directory')
     JSON_DIR = os.path.join(cwd, 'data', 'MangaSegmentation', 'jsons_processed')
     IMAGE_ROOT = os.path.join(cwd, 'data', 'Manga109_released_2023_12_07', 'images')
-    OUTPUT_DIR = os.path.join(cwd, 'output', 'bubble-detection', 'model-scratch-manga-segmentation', 'yolo_outputs')
+    OUTPUT_DIR = os.path.join(cwd, 'models', 'bubble-detection', 'model-scratch-manga-segmentation', 'yolo_outputs')
     parser = argparse.ArgumentParser(description="YOLO-Seg Training Script")
     parser.add_argument("--json-dir", type=str, default=JSON_DIR)
     parser.add_argument("--image-root", type=str, default=IMAGE_ROOT)

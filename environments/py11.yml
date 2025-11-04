@@ -27,3 +27,4 @@ dependencies:
       - pillow
       - tqdm
       - opencv-python
+      - seaborn
