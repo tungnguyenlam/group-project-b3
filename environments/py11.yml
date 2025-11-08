@@ -3,25 +3,28 @@ channels:
   - conda-forge
 dependencies:
   - python=3.11.13
-  - numpy
-  - pandas
-  - geopandas
-  - matplotlib
-  - scikit-learn
   - jupyterlab
   - ipykernel
   - detectron2
   - pytorch
   - torchvision
   - torchaudio
-  - shapely
-  - pillow
-  - tqdm
   - huggingface_hub
   - pip
+  - uv
   - pip:
       - inference-sdk
       - roboflow
       - python-dotenv
       - gdown
       - unzip
+      - numpy
+      - pandas
+      - geopandas
+      - matplotlib
+      - scikit-learn
+      - shapely
+      - pillow
+      - tqdm
+      - opencv-python
+      - seaborn
