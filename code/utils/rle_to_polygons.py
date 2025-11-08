@@ -4,22 +4,19 @@ import cv2
 import pycocotools.mask as maskUtils
 from tqdm import tqdm
 from multiprocessing import Pool, cpu_count
+import sys
 
-END_WITH_LOCAL = 'characters-and-dialouges-association-in-comics'
+END_WITH_LOCAL = 'group-project-b3'
 
 os.environ['PATH'] = f"/root/.cargo/bin:{os.environ['PATH']}"
 
 BASE_DIR = os.getcwd()
 print(f"BASE_DIR: {BASE_DIR}")
 
-# Simple validation
 if not (BASE_DIR.endswith('/content') or BASE_DIR.endswith(END_WITH_LOCAL)):
     raise ValueError(f"Expected to be in .../{END_WITH_LOCAL} or .../content directory, but got: {BASE_DIR}")
 
-# --- Configuration ---
-# Directory containing the original JSON files
 ORIGINAL_JSON_DIR = os.path.join(BASE_DIR,'data','MangaSegmentation/jsons')
-# Directory where the new, processed JSON files will be saved
 PROCESSED_JSON_DIR = os.path.join(BASE_DIR,'data','MangaSegmentation/jsons_processed')
 
 def process_single_annotation(ann):
@@ -96,7 +93,6 @@ def preprocess_all_jsons():
     
     # Use multiprocessing Pool to process files in parallel
     with Pool(processes=num_cores) as pool:
-        # Use tqdm to show progress
         list(tqdm(pool.imap(process_single_json, args_list), 
                   total=len(json_files), 
                   desc="Processing JSON files",

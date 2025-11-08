@@ -2,8 +2,8 @@
 
 CURRENT_DIR=$(pwd)
 
-if [[ ! "$CURRENT_DIR" == *"characters-and-dialouges-association-in-comics"* ]]; then
-    echo "Error: Not in characters-and-dialouges-association-in-comics directory"
+if [[ ! "$CURRENT_DIR" == *"group-project-b3"* ]]; then
+    echo "Error: Not in group-project-b3 directory"
     exit 1
 fi
 
