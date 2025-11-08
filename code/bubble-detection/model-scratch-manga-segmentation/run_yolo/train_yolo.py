@@ -567,8 +567,8 @@ def main(args):
 
 if __name__ == "__main__":
     cwd = os.getcwd()
-    if not cwd.endswith('bubble-segmentation-final-deep-learning'):
-        raise ValueError('To run this you should be in the bubble-segmentation-final-deep-learning directory')
+    if not cwd.endswith('group-project-b3'):
+        raise ValueError('To run this you should be in the group-project-b3 directory')
     JSON_DIR = os.path.join(cwd, 'data', 'MangaSegmentation', 'jsons_processed')
     IMAGE_ROOT = os.path.join(cwd, 'data', 'Manga109_released_2023_12_07', 'images')
     OUTPUT_DIR = os.path.join(cwd, 'models', 'bubble-detection', 'model-scratch-manga-segmentation', 'yolo_outputs')

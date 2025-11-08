@@ -2,8 +2,8 @@ import os
 import gdown
 
 BASE_DIR = os.getcwd()
-if not BASE_DIR.endswith('bubble-segmentation-final-deep-learning'):
-    raise ValueError('To run this you should be in the bubble-segmentation-final-deep-learning directory')
+if not BASE_DIR.endswith('group-project-b3'):
+    raise ValueError('To run this you should be in the group-project-b3 directory')
 
 MODEL_DIR = os.path.join(BASE_DIR, 'models', 'bubble-detection') 
 

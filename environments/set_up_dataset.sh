@@ -2,8 +2,8 @@
 
 CURRENT_DIR=$(pwd)
 
-if [[ ! "$CURRENT_DIR" == *"bubble-segmentation-final-deep-learning"* ]]; then
-    echo "Error: Not in bubble-segmentation-final-deep-learning directory"
+if [[ ! "$CURRENT_DIR" == *"group-project-b3"* ]]; then
+    echo "Error: Not in group-project-b3 directory"
     exit 1
 fi
 

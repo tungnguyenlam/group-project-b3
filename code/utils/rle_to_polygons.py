@@ -6,7 +6,7 @@ from tqdm import tqdm
 from multiprocessing import Pool, cpu_count
 import sys
 
-END_WITH_LOCAL = 'bubble-segmentation-final-deep-learning'
+END_WITH_LOCAL = 'group-project-b3'
 
 os.environ['PATH'] = f"/root/.cargo/bin:{os.environ['PATH']}"
 
