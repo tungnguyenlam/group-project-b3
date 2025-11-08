@@ -2,3 +2,5 @@ data/
 output/
 models/
 
+*.pt
+*.pth
