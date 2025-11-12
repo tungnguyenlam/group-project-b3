@@ -19,7 +19,18 @@ characters-and-dialouges-association-in-comics
 
 - Make sure you are in **.../characters-and-dialouges-association-in-comics/** (the folder containing this README).
 
-### For docker (recommended)
+### For running on local (MacOS, Linux, NO Windows) - Recommended
+
+- If you use conda
+
+```bash
+conda env create -f ./environments/py11.yml
+conda activate py11
+```
+
+- If you dont use conda, read the yml files and install each package by hand, since pip install requirement.txt is not supported
+
+### For docker - Deprecated
 
 - Build the image (Use whatever image name you want, here we use comical ^\_^)
 
@@ -36,17 +47,6 @@ docker run -it -p 8080:8080 -v "$(pwd):/characters-and-dialouges-association-in-
 ```
 
 - Open `http://localhost:8080` to access jupyterlab hosted on the docker container
-
-### For running on local (MacOS, Linux, NO Windows)
-
-- If you use conda
-
-```bash
-conda env create -f ./environments/py11.yml
-conda activate py11
-```
-
-- If you dont use conda, read the yml files and install each package by hand, since pip install requirement.txt is not supported
 
 ### Download the dataset
 
