@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# if [[ "$(pwd)" == *"/characters-and-dialouges-association-in-comics" ]] || [[ "$(pwd)" == *"/workspace" ]]; then
-#     echo "You are in the characters-and-dialouges-association-in-comics directory or /workspace"
+# if [[ "$(pwd)" == *"/group-project-b3" ]] || [[ "$(pwd)" == *"/workspace" ]]; then
+#     echo "You are in the group-project-b3 directory or /workspace"
 
 #     if [ ! -d ./data/Manga109_re_2023_12_07 ]; then
 #         gdown --fuzzy "https://drive.google.com/file/d/1ZvGD7g_7l9RwxnVV2KEz61BdXkzTDyBT/view?usp=sharing" -O ./data/Manga109_zipped.zip 
@@ -13,14 +13,14 @@
 
 
 # else
-#     echo "You are NOT in the characters-and-dialouges-association-in-comics directory or /workspace"
-#     echo "Change the directory to characters-and-dialouges-association-in-comics in local or /workspace in docker"
+#     echo "You are NOT in the group-project-b3 directory or /workspace"
+#     echo "Change the directory to group-project-b3 in local or /workspace in docker"
 # fi
 
 CURRENT_DIR=$(pwd)
 
-if [[ ! "$CURRENT_DIR" == *"characters-and-dialouges-association-in-comics"* ]]; then
-    echo "Error: Not in characters-and-dialouges-association-in-comics directory"
+if [[ ! "$CURRENT_DIR" == *"group-project-b3"* ]]; then
+    echo "Error: Not in group-project-b3 directory"
     exit 1
 fi
 
@@ -33,7 +33,7 @@ CHARACTER_DIALOGUES_DIR=""
 TEMP_DIR="$CURRENT_DIR"
 
 while [[ "$TEMP_DIR" != "/" ]]; do
-    if [[ $(basename "$TEMP_DIR") == "characters-and-dialouges-association-in-comics" ]]; then
+    if [[ $(basename "$TEMP_DIR") == "group-project-b3" ]]; then
         CHARACTER_DIALOGUES_DIR="$TEMP_DIR"
         break
     fi
