@@ -42,6 +42,7 @@ class YoloSeg:
                 raise FileNotFoundError(f"Image path is not valid: {image_path}")
             else:
                 result_seg = self.model(image_path)
+                print(result_seg)
 
                 # Check if results are empty
                 if not result_seg or len(result_seg) == 0:
