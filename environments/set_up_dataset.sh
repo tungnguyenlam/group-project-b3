@@ -41,3 +41,11 @@ if [ ! -d ./data/Human_Annotate_300 ]; then
 else
     echo "./data/Human_Annotate_300 already exists, skipping download."
 fi
+
+if [ ! -d ./data/MangaOCR ]; then
+    gdown --fuzzy "https://drive.google.com/file/d/1sOsoUEqT9wMiww5zqCeCZBs3eutnt_8g/view?usp=sharing" -O ./data/MangaOCR.zip
+    unzip -o ./data/MangaOCR.zip -d ./data/
+    rm ./data/MangaOCR.zip
+else
+    echo "./data/MangaOCR already exists, skipping download."
+fi
