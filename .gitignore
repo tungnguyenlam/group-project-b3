@@ -4,5 +4,3 @@ models/
 
 *.pt
 *.pth
-
-*__pycache__
