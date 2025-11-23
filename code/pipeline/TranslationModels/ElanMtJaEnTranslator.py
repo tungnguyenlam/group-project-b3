@@ -6,7 +6,9 @@ class ElanMtJaEnTranslator:
 
     def load_model(self):
         if self.model is None:
-            self.model = pipeline('translation', model='Mitsua/elan-mt-bt-ja-en')
+            self.model = pipeline('translation', 
+                                  model='Mitsua/elan-mt-bt-ja-en',
+                                  framework="pt")
         else:
             raise TypeError("Model is already loaded")
         
