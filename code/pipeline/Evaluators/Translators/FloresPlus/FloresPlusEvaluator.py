@@ -89,8 +89,8 @@ class FloresPlusEvaluator:
             ["Character Error Rate (CER)", f"{cer.item():.4f}"],
             ["Word Error Rate (WER)", f"{wer.item():.4f}"],
             ["BLEU Score", f"{bleu.item():.4f}"],
-            ["chrF Score", f"{chrf.item():.4f}"],      # New
-            ["BERTScore F1", f"{bert_f1.item():.4f}"]  # New
+            ["chrF Score", f"{chrf.item():.4f}"],     
+            ["BERTScore F1", f"{bert_f1.item():.4f}"] 
         ]
         
         print("\n" + '='*60)

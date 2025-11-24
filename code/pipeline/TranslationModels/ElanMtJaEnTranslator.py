@@ -5,20 +5,26 @@ class ElanMtJaEnTranslator:
     def __init__(self):
         self.model = None
 
-    def load_model(self, device='cpu'):
+    def load_model(self, device='cpu', elan_model='bt'):
         if self.model is None:
-            self.model = pipeline('translation', model='Mitsua/elan-mt-bt-ja-en', framework='pt', device=device)
+            if elan_model == 'bt':
+                self.model = pipeline('translation', model='Mitsua/elan-mt-bt-ja-en', framework='pt', device=device)
+            elif elan_model == 'base':
+                self.model = pipeline('translation', model='Mitsua/elan-mt-base-ja-en', framework='pt', device=device)
+            elif elan_model == 'tiny':
+                self.model = pipeline('translation', model='Mitsua/elan-mt-tiny-ja-en', framework='pt', device=device)
+            else:
+                raise ValueError(f"Invalid elan model: {elan_model}, please choose from 'bt', 'base', 'tiny'")
         else:
             print("Model is already loaded")
         
-    def predict(self, source_texts: List[str]) -> List[str]:  # Fix: Handle list of strings
+    def predict(self, source_texts: List[str]) -> List[str]:
         """
         Takes a list of source strings and returns a list of translated strings.
         """
         if self.model is None:
             raise ValueError("Model not loaded. Call load_model() first.")
         
-        # Handle both single string and list
         if isinstance(source_texts, str):
             source_texts = [source_texts]
         
