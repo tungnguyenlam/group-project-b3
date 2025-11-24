@@ -6,58 +6,56 @@ from torchmetrics.text.bert import BERTScore
 from datasets import load_dataset
 from tqdm import tqdm
 from tabulate import tabulate
+from transformers import pipeline
 
-class EvaluationDataset(Dataset):
-    def __init__(self, ds, src_lang, tgt_lang):
-        super().__init__()
-        self.ds = ds
-        self.src_lang = src_lang
-        self.tgt_lang = tgt_lang
-
+class FloresDataset(Dataset):
+    def __init__(self, ds_src, ds_tgt):
+        """
+        ds_src: Japanese dataset
+        ds_tgt: English dataset (or target language)
+        They should be aligned by index
+        """
+        self.ds_src = ds_src
+        self.ds_tgt = ds_tgt
+        assert len(ds_src) == len(ds_tgt), "Source and target datasets must have same length"
+    
     def __len__(self):
-        return len(self.ds)
+        return len(self.ds_src)
     
     def __getitem__(self, index):
-        src_target_pair = self.ds[index]
-        src_text = src_target_pair['translation'][self.src_lang]
-        tgt_text = src_target_pair['translation'][self.tgt_lang]
-        
         return {
-            "src_text": src_text,
-            "tgt_text": tgt_text
+            "src_text": self.ds_src[index]['text'],
+            "tgt_text": self.ds_tgt[index]['text']
         }
 
-class Opus100Evaluator:
-    def __init__(self, hf_token=None):
+class FloresPlusEvaluator:
+    def __init__(self, hf_token=None, device='cpu'):
         self.hf_token = hf_token
         
-        # Load the dataset
-        print("Loading Dataset...")
-        self.ds_raw_test = load_dataset('opus100', 'en-ja', split='test', token=hf_token)
+    def evaluate(self, model, batch_size=8, device='cpu', verbose=False):
 
-    def evaluate(self, model, batch_size=8, verbose=False, device='cpu'):
-        # Create the evaluation dataset
-        val_ds = EvaluationDataset(self.ds_raw_test, 'ja', 'en')
-        val_dataloader = DataLoader(val_ds, batch_size=batch_size, shuffle=False)
-
+        ds_jpn = load_dataset("openlanguagedata/flores_plus", "jpn_Jpan", split = 'devtest')
+        ds_eng = load_dataset("openlanguagedata/flores_plus", "eng_Latn", split = 'devtest')
+        flores_ds = FloresDataset(ds_jpn, ds_eng)
+        flores_dataloader = DataLoader(flores_ds, batch_size=batch_size, shuffle=False)
+        
         model.load_model()
         
         source_texts = []
         expected = []
         predicted = []
         
-        print(f"Starting evaluation on {self.device}...")
-        for batch in tqdm(val_dataloader):
+        print("Starting evaluation...")
+        for batch in tqdm(flores_dataloader):
             batch_src_texts = batch["src_text"]
             batch_tgt_texts = batch["tgt_text"]
             
-            # Predict
             batch_predicted_texts = model.predict(batch_src_texts)
 
             if verbose:
-                print(f"Src: {batch_src_texts[0]}")
-                print(f"Tgt: {batch_tgt_texts[0]}")
-                print(f"Pred: {batch_predicted_texts[0]}")
+                print(f"Batch source texts: {batch_src_texts}")
+                print(f"Batch target texts: {batch_tgt_texts}")
+                print(f"Batch predicted texts: {batch_predicted_texts}")
 
             source_texts.extend(batch_src_texts)
             expected.extend(batch_tgt_texts)
@@ -65,6 +63,7 @@ class Opus100Evaluator:
 
         model.unload_model()
             
+        # Compute metrics
         metric_cer = CharErrorRate()
         cer = metric_cer(predicted, expected)
         
@@ -84,6 +83,7 @@ class Opus100Evaluator:
         self.bert_scorer.update(predicted, expected)
         bert_results = self.bert_scorer.compute()
         bert_f1 = bert_results['f1'].mean()
+        
 
         metrics_data = [
             ["Character Error Rate (CER)", f"{cer.item():.4f}"],
@@ -105,3 +105,8 @@ class Opus100Evaluator:
             "chrf": chrf.item(),
             "bertscore": bert_f1.item()
         }
+
+
+
+
+
