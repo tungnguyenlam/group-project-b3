@@ -216,7 +216,7 @@ def main():
     parser.add_argument(
         '--output-dir',
         type=Path,
-        default=Path('data/MangaOCR'),
+        default=Path('data/MangaOCR/jsons_processed'),
         help='Directory to save output JSON files'
     )
     parser.add_argument(
