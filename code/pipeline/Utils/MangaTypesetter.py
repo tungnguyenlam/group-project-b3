@@ -22,8 +22,11 @@ class MangaTypesetter:
         for bubble in bubbles:
             if not bubble.get('translated_text', '').strip(): continue
             
+            # Use original_mask to have better overlay
+            mask_to_use = bubble.get('original_mask', bubble['mask'])
+
             # Erode to clear old text without killing the border
-            eroded_mask = cv2.erode(bubble['mask'], erosion_kernel, iterations=1)
+            eroded_mask = cv2.erode(mask_to_use, erosion_kernel, iterations=1)
             contours, _ = cv2.findContours(eroded_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             cv2.drawContours(image_final, contours, -1, (255, 255, 255), thickness=cv2.FILLED)
 

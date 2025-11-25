@@ -46,6 +46,7 @@ class BubbleSegmenter:
                 
                 refined_bubbles.append({
                     'mask': single_mask,
+                    'original_mask': initial_mask,
                     'bbox': bbox,
                     'contour': contour
                 })
