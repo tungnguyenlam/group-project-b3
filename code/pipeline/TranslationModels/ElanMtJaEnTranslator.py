@@ -5,14 +5,14 @@ class ElanMtJaEnTranslator:
     def __init__(self):
         self.model = None
 
-    def load_model(self, device='cpu', elan_model='bt'):
+    def load_model(self, device='auto', elan_model='tiny'):
         if self.model is None:
             if elan_model == 'bt':
-                self.model = pipeline('translation', model='Mitsua/elan-mt-bt-ja-en', framework='pt', device=device)
+                self.model = pipeline('translation', model='Mitsua/elan-mt-bt-ja-en', framework='pt', device_map=device)
             elif elan_model == 'base':
-                self.model = pipeline('translation', model='Mitsua/elan-mt-base-ja-en', framework='pt', device=device)
+                self.model = pipeline('translation', model='Mitsua/elan-mt-base-ja-en', framework='pt', device_map=device)
             elif elan_model == 'tiny':
-                self.model = pipeline('translation', model='Mitsua/elan-mt-tiny-ja-en', framework='pt', device=device)
+                self.model = pipeline('translation', model='Mitsua/elan-mt-tiny-ja-en', framework='pt', device_map=device)
             else:
                 raise ValueError(f"Invalid elan model: {elan_model}, please choose from 'bt', 'base', 'tiny'")
         else:
