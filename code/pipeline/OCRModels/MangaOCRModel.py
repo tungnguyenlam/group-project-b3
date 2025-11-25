@@ -1,5 +1,6 @@
 from manga_ocr import MangaOcr
 from PIL import Image
+import gc
 
 def transform_img_to_PIL(img):
     return Image.fromarray(img)
@@ -18,4 +19,9 @@ class MangaOCRModel:
             return self.mocr(img)
         else:
             return self.mocr(transform_img_to_PIL(img))
+        
+    def unload_model(self):
+        del self.mocr
+        gc.collect()
+        self.mocr = None
             
