@@ -1,7 +1,7 @@
-# code/pipeline/MangaPipeline.py
+# code/pipeline/Utils/MangaPipeline.py
 import numpy as np
-from pipeline.BubbleSegmenter import BubbleSegmenter
-from pipeline.MangaTypesetter import MangaTypesetter
+from .BubbleSegmenter import BubbleSegmenter
+from .MangaTypesetter import MangaTypesetter
 from pipeline.OCRModels.MangaOCRModel import MangaOCRModel
 from pipeline.TranslationModels.ElanMtJaEnTranslator import ElanMtJaEnTranslator
 

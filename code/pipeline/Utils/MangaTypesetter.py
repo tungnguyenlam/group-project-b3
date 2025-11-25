@@ -1,4 +1,4 @@
-# code/pipeline/MangaTypesetter.py
+# code/pipeline/Utils/MangaTypesetter.py
 import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
