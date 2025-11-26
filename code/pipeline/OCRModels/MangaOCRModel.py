@@ -15,45 +15,31 @@ class MangaOCRModel:
         except:
             print("Failed to load MangaOCR model")
 
-    def predict(self, bboxes_or_image, image=None):
+    def predict(self, bboxes, image):
         """
-        Flexible predict method that works with both pipeline and notebook usage.
+        Predict OCR text for each bounding box in the image.
         
-        Usage 1 (Pipeline format - recommended):
-            bboxes = [[x_min, y_min, x_max, y_max], ...]
-            texts = model.predict(bboxes, image)
+        Args:
+            bboxes: List of bounding boxes, each in format [x_min, y_min, x_max, y_max]
+            image: numpy array of the full image (RGB format)
             
-        Usage 2 (Notebook format - single cropped image):
-            cropped_image = image[y:y+h, x:x+w]
-            text = model.predict(cropped_image)
+        Returns:
+            List of OCR text strings, one for each bounding box
         """
         if self.mocr is None:
             raise ValueError("Model has not been loaded successfully")
         
-        # Case 1: Single cropped image (notebook usage)
-        if image is None:
-            cropped = bboxes_or_image
-            if not isinstance(cropped, np.ndarray):
-                raise TypeError("Image must be a numpy array")
-            
-            # Perform OCR on single image
-            try:
-                pil_image = Image.fromarray(cropped)
-                text = self.mocr(pil_image)
-                return text
-            except Exception as e:
-                print(f"OCR error: {e}")
-                return ""
-        
-        # Case 2: List of bboxes + full image (pipeline usage)
-        bboxes = bboxes_or_image
         if not isinstance(image, np.ndarray):
             raise TypeError("Image must be a numpy array")
+        
+        if not bboxes or len(bboxes) == 0:
+            print("No bounding boxes provided")
+            return []
         
         ocr_results = []
         
         # Process each bounding box
-        for bbox in bboxes:
+        for i, bbox in enumerate(bboxes):
             x_min, y_min, x_max, y_max = bbox
             
             # Convert to integers
@@ -65,6 +51,7 @@ class MangaOCRModel:
             
             # Handle empty crops
             if cropped.size == 0:
+                print(f"Warning: Empty crop for bbox {i}: {bbox}")
                 ocr_results.append("")
                 continue
             
@@ -74,14 +61,23 @@ class MangaOCRModel:
                 text = self.mocr(pil_image)
                 ocr_results.append(text)
             except Exception as e:
-                print(f"OCR error for bbox {bbox}: {e}")
+                print(f"OCR error for bbox {i} {bbox}: {e}")
                 ocr_results.append("")
         
         print(f"OCR completed for {len(bboxes)} text bubbles")
         return ocr_results
     
     def transform_output(self, raw_output):
-        # Ensure all outputs are strings
+        """
+        Transform raw OCR output to pipeline format.
+        Ensures all outputs are strings.
+        
+        Args:
+            raw_output: List of OCR results from predict()
+            
+        Returns:
+            List of string texts in pipeline format
+        """
         return [str(text) if text is not None else "" for text in raw_output]
 
     def unload_model(self):
