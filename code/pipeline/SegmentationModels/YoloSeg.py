@@ -62,6 +62,7 @@ class YoloSeg:
                     boxes = []
                 else:
                     boxes = result.boxes.xyxy.cpu().numpy()
+                    masks = result.masks.xy
                     print(f"Found {len(boxes)} text bubbles")
 
                     if print_bbox:
@@ -72,7 +73,7 @@ class YoloSeg:
                         ax = plot_image(ax, img_rgb, boxes, plot_bbox = True)
                         ax.plot()
         
-                return img_rgb, boxes
+                return img_rgb, boxes, masks
 
     def unload_model(self):
         if self.model == None:
