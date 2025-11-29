@@ -6,6 +6,9 @@ from PIL import Image
 import torch
 from torchvision import transforms
 from torch.utils.data import Dataset
+from pycocotools import mask as mask_utils
+
+
 
 def normalize_series_name(name):
     name = name.replace("'", "")
@@ -125,93 +128,94 @@ def gather_json(series_list, mask_dir, keep_cat_id=5):
     
     return combined_data
 
-
 class MangaBubbleDataset(Dataset):
-    def __init__(self, json_file, img_dir, img_size=(256, 256), transform=None):
+    def __init__(self, json_file, img_dir, img_size, transform=None):
         self.img_dir = img_dir
-        self.img_size = img_size
+        self.img_size = img_size  # (height, width)
         self.transform = transform
-        
+
         # Load COCO JSON
         with open(json_file, "r") as f:
             ann = json.load(f)
-        
+
         self.images = ann["images"]
         self.annotations = ann["annotations"]
-        
-        # Mapping: image_id → image_info
-        self.image_infos = {img["id"]: img for img in self.images}
-        
-        # Mapping: image_id → list of annotations
+
+        # Mapping: image_id -> list of annotations
         self.annos_by_id = {}
         for a in self.annotations:
             img_id = a["image_id"]
             if img_id not in self.annos_by_id:
                 self.annos_by_id[img_id] = []
             self.annos_by_id[img_id].append(a)
-    
+
     def __len__(self):
         return len(self.images)
-    
+
     def __getitem__(self, idx):
         img_info = self.images[idx]
         img_id = img_info["id"]
-        img_name = img_info["file_name"]
-        
-        img_path = os.path.join(self.img_dir, img_name)
+        img_path = os.path.join(self.img_dir, img_info["file_name"])
         if not os.path.exists(img_path):
             raise FileNotFoundError(f"Image not found: {img_path}")
-        
-        img = Image.open(img_path)
-        if img.mode != "RGB":
-            img = img.convert("RGB")
-        
+
+        # Load image
+        img = Image.open(img_path).convert("RGB")
         orig_width, orig_height = img_info["width"], img_info["height"]
         img = img.resize(self.img_size)
-        
-        # Tạo list mask và bbox rỗng
-        object_masks = []   # list mask từng object, mỗi mask shape = (H, W)
-        scaled_bboxes = []  # list bbox đã scale
-        
-        # Scale factor
         scale_x = self.img_size[0] / orig_width
         scale_y = self.img_size[1] / orig_height
 
-        
-        object_masks = []
+        # Get annotations for this image
+        annos = self.annos_by_id.get(img_id, [])
+
+        # --- Scale bboxes ---
         scaled_bboxes = []
-        
-        bboxes= []
-        segs= []
-        for i in range (1, len(self.annos_by_id.keys())+1):
-            for l in self.annos_by_id[i]:
-                e= l.get('bbox', [])
-                bboxes.append(e)
-                m= l.get('segmentation', [])
-                segs.append(m)
-                
-        for bbox in bboxes:
-            x,y,w,h= map(float, bbox)
-            scaled_bboxes.append([x * scale_x, y * scale_y, (x + w) * scale_x, (y + h) * scale_y])
+        for ann in annos:
+            bbox = ann.get("bbox", [])
+            if len(bbox) == 4:
+                x, y, w, h = map(float, bbox)
+                scaled_bboxes.append([x * scale_x, y * scale_y,
+                                      (x + w) * scale_x, (y + h) * scale_y])
 
-        for seg in segs:
-            obj_mask = np.zeros((self.img_size[1], self.img_size[0]), dtype=np.uint8)
-            pts = np.array(seg, dtype=np.float32).reshape(-1,2)
-            pts[:,0] *= scale_x
-            pts[:,1] *= scale_y
-            cv2.fillPoly(obj_mask, [pts.astype(np.int32)], 1)
-            obj_mask= torch.tensor(obj_mask, dtype=torch.bool).unsqueeze(0)
-            object_masks.append(obj_mask)  # append **1 lần** cho object
+        # --- Create combined mask ---
+        mask_combined = np.zeros((orig_height, orig_width), dtype=bool)
+        for ann in annos:
+            seg = ann.get("segmentation", [])
+            if seg:
+                rle = mask_utils.frPyObjects(seg, orig_height, orig_width)
+                mask = mask_utils.decode(rle)
+                if mask.ndim == 3:
+                    mask_2d = mask.squeeze()
+                else:
+                    mask_2d = mask
+                mask_combined = np.logical_or(mask_combined, mask_2d)
 
-        
-        # Transform image
+        # Resize mask to target size
+        mask_resized = cv2.resize(mask_combined.astype(np.uint8),
+                                  (self.img_size[1], self.img_size[0]),
+                                  interpolation=cv2.INTER_NEAREST)
+
+        object_mask = torch.from_numpy(mask_resized.astype(np.uint8))
+
+        # Apply transform to image
         if self.transform:
             img = self.transform(img)
         else:
             img = transforms.ToTensor()(img)
-        
-        # Convert mask sang tensor bool [1,H,W]
-        
-        return img, object_masks, scaled_bboxes
 
+        return img, object_mask, scaled_bboxes
+                
+                
+                
+            
+            
+                
 
+        
+
+        
+
+    
+    
+    
