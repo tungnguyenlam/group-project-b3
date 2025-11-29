@@ -1,4 +1,4 @@
-# code/pipeline/UtilsBubbleSegmenter.py
+# code/pipeline/Utils/BubbleSegmenter.py
 import cv2
 import numpy as np
 import sys
