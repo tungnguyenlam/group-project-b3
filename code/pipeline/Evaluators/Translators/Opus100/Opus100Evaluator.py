@@ -1,6 +1,6 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
-from torchmetrics.text import CharErrorRate, WordErrorRate, BLEUScore
+from torchmetrics.text import CharErrorRate, WordErrorRate, BLEUScore, SacreBLEUScore
 from torchmetrics.text import CHRFScore
 from torchmetrics.text.bert import BERTScore
 from datasets import load_dataset
@@ -46,7 +46,7 @@ class Opus100Evaluator:
         expected = []
         predicted = []
         
-        print(f"Starting evaluation on {self.device}...")
+        print(f"Starting evaluation on {device}...")
         for batch in tqdm(val_dataloader):
             batch_src_texts = batch["src_text"]
             batch_tgt_texts = batch["tgt_text"]
@@ -75,11 +75,13 @@ class Opus100Evaluator:
         bleu_formatted_refs = [[ref] for ref in expected]       # Since we have 1 ref per item, we wrap it: [ref] -> [[ref]]
         bleu = metric_bleu(predicted, bleu_formatted_refs)
 
+        sacre_bleu = SacreBLEUScore()
+        sacre_bleu_score = sacre_bleu(predicted, bleu_formatted_refs)
+
         metric_chrf = CHRFScore(n_char_order=6, n_word_order=2) # n_char_order=6, n_word_order=2 is standard "chrF++"
         chrf = metric_chrf(predicted, bleu_formatted_refs)      # CHRF also expects [[ref]] format
 
-        self.bert_scorer = BERTScore(lang="en", rescale_with_baseline=False)
-        self.bert_scorer.to(device)
+        self.bert_scorer = BERTScore(lang="en", rescale_with_baseline=False, device=device)
         self.bert_scorer.reset()
         self.bert_scorer.update(predicted, expected)
         bert_results = self.bert_scorer.compute()
@@ -89,6 +91,7 @@ class Opus100Evaluator:
             ["Character Error Rate (CER)", f"{cer.item():.4f}"],
             ["Word Error Rate (WER)", f"{wer.item():.4f}"],
             ["BLEU Score", f"{bleu.item():.4f}"],
+            ["SacreBLEU Score", f"{sacre_bleu_score.item():.4f}"],
             ["chrF Score", f"{chrf.item():.4f}"],      # New
             ["BERTScore F1", f"{bert_f1.item():.4f}"]  # New
         ]
@@ -102,6 +105,7 @@ class Opus100Evaluator:
             "cer": cer.item(),
             "wer": wer.item(),
             "bleu": bleu.item(),
+            "sacrebleu": sacre_bleu_score.item(),
             "chrf": chrf.item(),
             "bertscore": bert_f1.item()
         }
