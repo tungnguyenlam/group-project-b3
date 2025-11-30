@@ -4,9 +4,9 @@ from torchmetrics.text import CharErrorRate, WordErrorRate, BLEUScore, SacreBLEU
 from torchmetrics.text import CHRFScore
 from torchmetrics.text.bert import BERTScore
 from datasets import load_dataset
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from tabulate import tabulate
-
+import gc
 class EvaluationDataset(Dataset):
     def __init__(self, ds, src_lang, tgt_lang):
         super().__init__()
@@ -35,7 +35,7 @@ class Opus100Evaluator:
         print("Loading Dataset...")
         self.ds_raw_test = load_dataset('opus100', 'en-ja', split='test', token=hf_token)
 
-    def evaluate(self, model, batch_size=8, verbose=False, device='cpu'):
+    def evaluate(self, model, batch_size=1, verbose=True, device='cpu'):
         # Create the evaluation dataset
         val_ds = EvaluationDataset(self.ds_raw_test, 'ja', 'en')
         val_dataloader = DataLoader(val_ds, batch_size=batch_size, shuffle=False)
@@ -78,34 +78,48 @@ class Opus100Evaluator:
         sacre_bleu = SacreBLEUScore()
         sacre_bleu_score = sacre_bleu(predicted, bleu_formatted_refs)
 
-        metric_chrf = CHRFScore(n_char_order=6, n_word_order=2) # n_char_order=6, n_word_order=2 is standard "chrF++"
-        chrf = metric_chrf(predicted, bleu_formatted_refs)      # CHRF also expects [[ref]] format
+        metric_chrf = CHRFScore(n_char_order=6, n_word_order=0)
+        chrf = metric_chrf(predicted, bleu_formatted_refs)
+        
+        metric_chrf_pp = CHRFScore(n_char_order=6, n_word_order=2) # n_char_order=6, n_word_order=2 is standard "chrF++"
+        chrf_pp = metric_chrf_pp(predicted, bleu_formatted_refs)      # CHRF also expects [[ref]] format
 
-        self.bert_scorer = BERTScore(lang="en", rescale_with_baseline=False, device=device)
+        self.bert_scorer = BERTScore(lang="en", rescale_with_baseline=False, device=device, verbose=verbose)
         self.bert_scorer.reset()
         self.bert_scorer.update(predicted, expected)
         bert_results = self.bert_scorer.compute()
         bert_f1 = bert_results['f1'].mean()
 
-        metrics_data = [
-            ["Character Error Rate (CER)", f"{cer.item():.4f}"],
-            ["Word Error Rate (WER)", f"{wer.item():.4f}"],
-            ["BLEU Score", f"{bleu.item():.4f}"],
-            ["SacreBLEU Score", f"{sacre_bleu_score.item():.4f}"],
-            ["chrF Score", f"{chrf.item():.4f}"],      # New
-            ["BERTScore F1", f"{bert_f1.item():.4f}"]  # New
-        ]
-        
-        print("\n" + '='*60)
-        print(f"EVALUATION METRICS ON {len(expected)} EXAMPLES")
-        print(tabulate(metrics_data, headers=["Metric", "Value"], tablefmt="heavy_outline"))
-        print('='*60)
-        
+        if verbose:
+            metrics_data = [
+                ["Character Error Rate (CER)", f"{cer.item():.4f}"],
+                ["Word Error Rate (WER)", f"{wer.item():.4f}"],
+                ["BLEU Score", f"{bleu.item():.4f}"],
+                ["SacreBLEU Score", f"{sacre_bleu_score.item():.4f}"],
+                ["chrF Score", f"{chrf.item():.4f}"],
+                ["chrF++ Score", f"{chrf_pp.item():.4f}"],
+                ["BERTScore F1", f"{bert_f1.item():.4f}"] 
+            ]
+            
+            print("\n" + '='*60)
+            print(f"EVALUATION METRICS ON {len(expected)} EXAMPLES")
+            print(tabulate(metrics_data, headers=["Metric", "Value"], tablefmt="heavy_outline"))
+            print('='*60)
+
+        del metric_cer, metric_wer, metric_bleu, sacre_bleu, metric_chrf, self.bert_scorer
+        gc.collect()
+
         return {
             "cer": cer.item(),
             "wer": wer.item(),
             "bleu": bleu.item(),
             "sacrebleu": sacre_bleu_score.item(),
             "chrf": chrf.item(),
+            "chrf_pp": chrf_pp.item(),
             "bertscore": bert_f1.item()
         }
+
+
+
+
+
