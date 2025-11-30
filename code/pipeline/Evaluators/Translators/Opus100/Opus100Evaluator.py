@@ -47,7 +47,7 @@ class Opus100Evaluator:
         predicted = []
         
         print(f"Starting evaluation on {device}...")
-        for batch in tqdm(val_dataloader):
+        for i, batch in enumerate(tqdm(val_dataloader)):
             batch_src_texts = batch["src_text"]
             batch_tgt_texts = batch["tgt_text"]
             
@@ -55,9 +55,10 @@ class Opus100Evaluator:
             batch_predicted_texts = model.predict(batch_src_texts)
 
             if verbose:
-                print(f"Src: {batch_src_texts[0]}")
-                print(f"Tgt: {batch_tgt_texts[0]}")
-                print(f"Pred: {batch_predicted_texts[0]}")
+                if i % 20 == 0:
+                    print(f"Batch {i} source texts: {batch_src_texts}")
+                    print(f"Batch {i} target texts: {batch_tgt_texts}")
+                    print(f"Batch {i} predicted texts: {batch_predicted_texts}")
 
             source_texts.extend(batch_src_texts)
             expected.extend(batch_tgt_texts)

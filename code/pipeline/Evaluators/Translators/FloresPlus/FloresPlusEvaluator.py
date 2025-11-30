@@ -47,16 +47,17 @@ class FloresPlusEvaluator:
         predicted = []
         
         print("Starting evaluation...")
-        for batch in tqdm(flores_dataloader):
+        for i, batch in enumerate(tqdm(flores_dataloader)):
             batch_src_texts = batch["src_text"]
             batch_tgt_texts = batch["tgt_text"]
             
             batch_predicted_texts = model.predict(batch_src_texts)
 
             if verbose:
-                print(f"Batch source texts: {batch_src_texts}")
-                print(f"Batch target texts: {batch_tgt_texts}")
-                print(f"Batch predicted texts: {batch_predicted_texts}")
+                if i % 20 == 0:
+                    print(f"Batch {i} source texts: {batch_src_texts}")
+                    print(f"Batch {i} target texts: {batch_tgt_texts}")
+                    print(f"Batch {i} predicted texts: {batch_predicted_texts}")
 
             source_texts.extend(batch_src_texts)
             expected.extend(batch_tgt_texts)
