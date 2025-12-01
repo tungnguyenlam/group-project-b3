@@ -18,6 +18,7 @@ class ClassEvaluator():
         all_gt_boxes = []
         pred_masks = []
         pred_boxes = []
+        pred_probs= []
 
         iterator = tqdm(loader, desc="Evaluating")
 
@@ -32,6 +33,8 @@ class ClassEvaluator():
             for p in results:
                 # Boxes cho 1 image - LƯU TOÀN BỘ LIST
                 img_pred_boxes = []
+                img_probs= []
+                
                 for pb in p.boxes.xyxy.cpu().numpy():
                     img_pred_boxes.append(pb.tolist())  # Thêm từng box vào list
                 
@@ -46,7 +49,11 @@ class ClassEvaluator():
                 
                 # Thêm vào list chính
                 pred_masks.append(img_pred_mask)           # 1 mask per image
-                pred_boxes.append(img_pred_boxes)          # 1 LIST of boxes per image
+                pred_boxes.append(img_pred_boxes) # 1 LIST of boxes per image
+
+                probs= p.boxes.conf.cpu().tolist()
+                pred_probs.append(probs)
+                
 
         tot_images= len(all_gt_masks)
         tot_pred_masks= len(pred_masks)

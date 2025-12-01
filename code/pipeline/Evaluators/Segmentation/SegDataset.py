@@ -175,8 +175,8 @@ class MangaBubbleDataset(Dataset):
             bbox = ann.get("bbox", [])
             if len(bbox) == 4:
                 x, y, w, h = map(float, bbox)
-                scaled_bboxes.append([x * scale_x, y * scale_y,
-                                      (x + w) * scale_x, (y + h) * scale_y])
+                scaled_bboxes.append([x*scale_x, y*scale_y,
+                                      (x + w)*scale_x, (y + h)*scale_y])
 
         # --- Create combined mask ---
         mask_combined = np.zeros((orig_height, orig_width), dtype=bool)

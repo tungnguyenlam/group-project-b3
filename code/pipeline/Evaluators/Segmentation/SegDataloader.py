@@ -23,8 +23,8 @@ def manga_collate_fn(batch):
     return images, masks, bboxes
 
 
-# --- DataLoader class ---
-class MangaBubbleDataLoader:
+class MangaBubbleDataLoader(DataLoader):
+    
     def __init__(self, json_file, img_dir, img_size, batch_size=4, shuffle=False, num_workers=2, transform=None):
         self.dataset = MangaBubbleDataset(json_file, img_dir, img_size, transform)
         self.batch_size = batch_size
@@ -40,21 +40,3 @@ class MangaBubbleDataLoader:
             collate_fn=manga_collate_fn
         )
 
-
-# --- Ví dụ sử dụng ---
-if __name__ == "__main__":
-    loader_class = MangaBubbleDataLoader(
-        json_file="path/to/annotations.json",
-        img_dir="path/to/images",
-        img_size=(256, 256),
-        batch_size=4,
-        shuffle=True,
-        num_workers=2
-    )
-    dataloader = loader_class.get_loader()
-
-    for imgs, masks, bboxes in dataloader:
-        print(imgs.shape)    # [batch_size, 3, 256, 256]
-        print(len(masks))    # batch_size
-        print(len(bboxes))   # batch_size
-        break

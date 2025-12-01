@@ -81,7 +81,9 @@ class EvalSeg:
                           2 * inter.float() / total.float(), 
                           torch.zeros_like(inter, dtype=torch.float))
         return dice
+
     
+
     def eval_bbox(self, iou_thresholds: Optional[List[float]] = None) -> Dict:
         """
         Đánh giá bounding boxes.
@@ -118,7 +120,7 @@ class EvalSeg:
                     max_iou = iou_matrix[i].max()
                     matched_ious.append(max_iou)
             
-            all_ious.extend(matched_ious)
+            all_ious.append(matched_ious)
         
         if len(all_ious) == 0:
             return {
@@ -126,19 +128,22 @@ class EvalSeg:
                 "mAP": 0.0,
                 "precision": 0.0,
                 "recall": 0.0,
-                "f1": 0.0,
-                "total_gt": total_gt,
-                "total_pred": total_pred
+                "f1": 0.0
             }
-        
-        mean_iou = np.mean(all_ious)
+
+        mean_ious_img= []
+        for img_ious in all_ious:
+            mean_img_ious= np.mean(img_ious)
+            mean_ious_img.append(mean_img_ious)
+            
+        mean_iou = np.mean(mean_ious_img)
         
         # Tính metrics cho từng threshold
         aps = []
         results_per_threshold = {}
         
         for t in iou_thresholds:
-            TP = sum([iou >= t for iou in all_ious])
+            TP = sum([iou >= t for ious in all_ious for iou in ious])
             FP = total_pred - TP
             FN = total_gt - TP
             
@@ -158,11 +163,11 @@ class EvalSeg:
             "precision": precision,  # Của threshold cuối cùng
             "recall": recall,
             "f1": f1,
-            "total_gt": total_gt,
-            "total_pred": total_pred,
             **results_per_threshold
         }
-    
+                    
+                
+
     def eval_mask(self) -> Dict:
         """
         Đánh giá combined segmentation masks.
@@ -248,7 +253,7 @@ def evaluate_model(model, dataloader, device='cuda'):
     )
     
     # Đánh giá
-    results = evaluator.eval_all(iou_thresholds=[0.5, 0.75, 0.9])
+    results = evaluator.eval_all(iou_thresholds=[0.5, 0.75])
     
     return results
 
@@ -262,8 +267,6 @@ def print_results(results: Dict):
     print(f"  Precision:       {bbox['precision']:.4f}")
     print(f"  Recall:          {bbox['recall']:.4f}")
     print(f"  F1 Score:        {bbox['f1']:.4f}")
-    print(f"  Total GT:        {bbox['total_gt']}")
-    print(f"  Total Pred:      {bbox['total_pred']}")
     
     print("\n MASK METRICS:")
     mask = results['mask']
