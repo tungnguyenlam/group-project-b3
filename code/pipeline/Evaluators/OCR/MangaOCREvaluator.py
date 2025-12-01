@@ -187,6 +187,24 @@ class MangaOCRDataset(Dataset):
         }
 
 
+def custom_collate_fn(batch):
+    """
+    Custom collate function to handle variable-length boxes and texts.
+    Keeps boxes and ground_truth as lists instead of trying to stack them as tensors.
+    """
+    images = [item["image"] for item in batch]
+    image_paths = [item["image_path"] for item in batch]
+    boxes = [item["boxes"] for item in batch]
+    ground_truth = [item["ground_truth"] for item in batch]
+    
+    return {
+        "image": images,
+        "image_path": image_paths,
+        "boxes": boxes,
+        "ground_truth": ground_truth
+    }
+
+
 class MangaOCREvaluator:
     def __init__(self, device='cpu'):
         """
@@ -211,7 +229,7 @@ class MangaOCREvaluator:
         Returns:
             Dictionary containing CER and WER metrics
         """
-        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate_fn)
         
         ocr_model.load_model()
         
@@ -226,13 +244,9 @@ class MangaOCREvaluator:
             
             # Process each item in the batch
             for i in range(len(batch_images)):
-                image = batch_images[i].numpy() if torch.is_tensor(batch_images[i]) else batch_images[i]
+                image = batch_images[i]
                 boxes = batch_boxes[i]
                 ground_truth = batch_ground_truth[i]
-                
-                # Convert boxes to numpy if needed
-                if torch.is_tensor(boxes):
-                    boxes = boxes.numpy()
                 
                 # Predict OCR for each box
                 predicted_texts = ocr_model.predict(boxes, image)
