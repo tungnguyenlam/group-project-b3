@@ -10,3 +10,6 @@ models/
 
 *.ipynb_checkpoints/
 *.DS_Store
+
+*.csv
+*.json

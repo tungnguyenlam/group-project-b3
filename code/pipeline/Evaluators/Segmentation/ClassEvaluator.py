@@ -29,7 +29,7 @@ class ClassEvaluator():
                 all_gt_boxes.append(batch_gt_bboxes[img_idx])  # Đây đã là list của lists [[x1,y1,x2,y2], ...]
             
             results = model.predict(imgs)
-            
+
             for p in results:
                 # Boxes cho 1 image - LƯU TOÀN BỘ LIST
                 img_pred_boxes = []
@@ -52,8 +52,7 @@ class ClassEvaluator():
                 pred_boxes.append(img_pred_boxes) # 1 LIST of boxes per image
 
                 probs= p.boxes.conf.cpu().tolist()
-                pred_probs.append(probs)
-                
+                pred_probs.append(probs)                
 
         tot_images= len(all_gt_masks)
         tot_pred_masks= len(pred_masks)

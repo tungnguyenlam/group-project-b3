@@ -4,6 +4,8 @@ import gc
 import cv2
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
+import torch
+import numpy as np
 
 def plot_patch(ax, x, y, width, height):
     rect = Rectangle((x, y), width, height, 
@@ -35,7 +37,12 @@ class YoloSeg:
         except:
             print("Model path is not valid")
 
-    def predict(self, image_path: str, print_bbox: bool = False, plot: bool = False, plot_bbox = True):
+    def predict(self, imgs):
+        results = self.model.predict(imgs)
+        return results
+
+
+    def predict_debug(self, image_path: str, print_bbox: bool = False, plot: bool = False, plot_bbox = True):
             if self.model is None: # Use 'is None' for comparison
                 raise ValueError("Model has not been loaded successfully")
             elif not os.path.exists(image_path):   
