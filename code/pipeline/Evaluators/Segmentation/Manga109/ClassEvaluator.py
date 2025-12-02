@@ -1,5 +1,9 @@
 from tqdm import tqdm
 import torch
+import matplotlib.pyplot as plt
+import random
+import numpy as np
+
 
 class ClassEvaluator():
     def __init__(self, train_loader, model):
@@ -7,6 +11,49 @@ class ClassEvaluator():
         self.model= model
         self._results = None
 
+
+    def visualize_image(self, img_tensor, masks, boxes, alpha=0.5):
+        """
+        Visualize a single image with all predicted masks overlaid and bounding boxes.
+    
+        Args:
+            img_tensor: Tensor [C,H,W], giá trị 0-255 hoặc 0-1
+            masks: list of [H,W] bool masks
+            boxes: list of [x1, y1, x2, y2]
+            alpha: float, độ trong suốt của mask overlay
+        """
+        # --- Chuyển ảnh sang HWC và scale 0-1 nếu cần ---
+        img = img_tensor.permute(1,2,0).cpu().numpy()
+        if img.max() > 1.0:
+            img = img / 255.0
+    
+        # --- Tạo ảnh overlay từ tất cả mask ---
+        overlay = np.zeros_like(img)
+    
+        for mask in masks:
+            color = np.random.rand(3)  # màu random
+            # Broadcast mask lên 3 kênh
+            overlay += np.where(mask[..., None], color, 0)
+    
+        # --- Clip overlay để không bị >1 ---
+        overlay = np.clip(overlay, 0, 1)
+    
+        # --- Hiển thị ảnh gốc + overlay ---
+        plt.figure(figsize=(6,6))
+        plt.imshow(img)
+        plt.imshow(overlay, alpha=alpha)  # overlay tất cả mask
+           
+        # --- Vẽ bbox ---
+        for box in boxes:
+            x1, y1, x2, y2 = box
+            rect = plt.Rectangle((x1, y1), x2-x1, y2-y1, 
+                                 fill=False, color='red', linewidth=2)
+            plt.gca().add_patch(rect)
+    
+        plt.axis('off')
+        plt.show()
+
+        
 
     def evaluate(self):
         from EvalSeg import EvalSeg
@@ -54,6 +101,15 @@ class ClassEvaluator():
                 probs= p.boxes.conf.cpu().tolist()
                 pred_probs.append(probs)
                 
+            global_idx_start = batch_idx * len(imgs)
+            rand_local_idx = random.randint(0, len(imgs)-1)
+            rand_global_idx = global_idx_start + rand_local_idx
+            
+            self.visualize_image(
+                imgs[rand_local_idx],
+                pred_masks[rand_global_idx],
+                pred_boxes[rand_global_idx]
+            )
             pbar.update(len(imgs))
 
 
