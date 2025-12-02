@@ -145,6 +145,16 @@ def link_texts_to_segments(json_data: Dict, page_texts: Dict[int, List[Dict]]) -
         
         ann['text_ids'] = [t['id'] for t in matching_texts]
         ann['texts'] = [t['text'] for t in matching_texts]
+        
+        # Calculate combined text_bbox from all matched texts
+        if matching_texts:
+            text_xmin = min(t['xmin'] for t in matching_texts)
+            text_ymin = min(t['ymin'] for t in matching_texts)
+            text_xmax = max(t['xmax'] for t in matching_texts)
+            text_ymax = max(t['ymax'] for t in matching_texts)
+            ann['text_bbox'] = [text_xmin, text_ymin, text_xmax, text_ymax]
+        else:
+            ann['text_bbox'] = []
 
     # 3. Handle unassigned texts (Texts that didn't fit in any bubble)
     # Generate new annotations for them
@@ -177,6 +187,7 @@ def link_texts_to_segments(json_data: Dict, page_texts: Dict[int, List[Dict]]) -
                     'category_id': 10,  # Assign category 10 for "Unlinked Text"
                     'bbox': [text_data['xmin'], text_data['ymin'], width, height],
                     'area': width * height,
+                    'text_bbox': [text_data['xmin'], text_data['ymin'], text_data['xmax'], text_data['ymax']],  # Format: [xmin, ymin, xmax, ymax]
                     'segmentation': [], # No polygon for raw text box
                     'iscrowd': 0,
                     'text_ids': [text_data['id']],

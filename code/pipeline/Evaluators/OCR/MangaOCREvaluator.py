@@ -3,147 +3,11 @@ from torch.utils.data import Dataset, DataLoader
 from torchmetrics.text import CharErrorRate, WordErrorRate
 from tqdm import tqdm
 from tabulate import tabulate
-import xml.etree.ElementTree as ET
 import json
 import os
 from pathlib import Path
 from typing import Dict, List, Tuple
 import cv2
-
-
-class ParseAnnotation:
-    """
-    Parse Manga109 XML annotations and save to JSON format.
-    """
-    def __init__(self, xml_path: str, images_dir: str, output_dir: str = "data/MangaOCR/jsons_processed"):
-        """
-        Args:
-            xml_path: Path to Manga109 XML annotation file
-            images_dir: Path to directory containing manga images
-            output_dir: Output directory for processed JSON files
-        """
-        self.xml_path = Path(xml_path)
-        self.images_dir = Path(images_dir)
-        self.output_dir = Path(output_dir)
-        self.manga_name = self.xml_path.stem
-        
-    def load_xml_annotations(self) -> Dict[int, List[Dict]]:
-        """
-        Load text annotations from XML file organized by page index.
-        Returns: Dictionary mapping page_index -> list of text annotations
-        """
-        tree = ET.parse(self.xml_path)
-        root = tree.getroot()
-        
-        page_texts = {}
-        
-        for page in root.findall('.//page'):
-            page_index = int(page.get('index'))
-            texts = []
-            
-            for text_elem in page.findall('text'):
-                text_data = {
-                    'id': text_elem.get('id'),
-                    'xmin': int(text_elem.get('xmin')),
-                    'ymin': int(text_elem.get('ymin')),
-                    'xmax': int(text_elem.get('xmax')),
-                    'ymax': int(text_elem.get('ymax')),
-                    'text': text_elem.text if text_elem.text else ''
-                }
-                texts.append(text_data)
-            
-            page_texts[page_index] = texts
-        
-        return page_texts
-    
-    def create_coco_format_json(self, page_texts: Dict[int, List[Dict]]) -> Dict:
-        """
-        Create COCO format JSON with text annotations.
-        """
-        json_data = {
-            "images": [],
-            "annotations": [],
-            "categories": [
-                {"id": 6, "name": "text"},
-                {"id": 5, "name": "speech_bubble"}
-            ]
-        }
-        
-        ann_id = 1
-        
-        # Process each page
-        for page_index, texts in page_texts.items():
-            # Find corresponding image file
-            image_files = list(self.images_dir.glob(f"{page_index:03d}.jpg")) + \
-                         list(self.images_dir.glob(f"{page_index:03d}.png"))
-            
-            if not image_files:
-                continue
-                
-            image_path = image_files[0]
-            img = cv2.imread(str(image_path))
-            if img is None:
-                continue
-                
-            height, width = img.shape[:2]
-            
-            # Add image info
-            image_info = {
-                "id": page_index,
-                "file_name": f"{page_index:03d}.jpg",
-                "width": width,
-                "height": height
-            }
-            json_data["images"].append(image_info)
-            
-            # Add text annotations
-            for text_data in texts:
-                xmin = text_data['xmin']
-                ymin = text_data['ymin']
-                xmax = text_data['xmax']
-                ymax = text_data['ymax']
-                
-                annotation = {
-                    'id': ann_id,
-                    'image_id': page_index,
-                    'category_id': 6,  # text category
-                    'bbox': [xmin, ymin, xmax - xmin, ymax - ymin],
-                    'area': (xmax - xmin) * (ymax - ymin),
-                    'text_bbox': [xmin, ymin, xmax, ymax],
-                    'segmentation': [],
-                    'iscrowd': 0,
-                    'text_ids': [text_data['id']],
-                    'texts': [text_data['text']]
-                }
-                json_data["annotations"].append(annotation)
-                ann_id += 1
-        
-        return json_data
-    
-    def parse_and_save(self):
-        """
-        Parse XML annotations and save to JSON format.
-        """
-        print(f"Parsing {self.manga_name}...")
-        
-        # Load XML annotations
-        page_texts = self.load_xml_annotations()
-        
-        # Create COCO format JSON
-        json_data = self.create_coco_format_json(page_texts)
-        
-        # Save to file
-        self.output_dir.mkdir(parents=True, exist_ok=True)
-        output_path = self.output_dir / f"{self.manga_name}.json"
-        
-        with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump(json_data, f, ensure_ascii=False, indent=2)
-        
-        print(f"  Total pages: {len(json_data['images'])}")
-        print(f"  Total text annotations: {len(json_data['annotations'])}")
-        print(f"  Saved to {output_path}")
-        
-        return output_path
 
 
 class MangaOCRDataset(Dataset):
@@ -382,11 +246,18 @@ class MangaOCREvaluator:
     def load_manga109_annotations(json_path: str, images_dir: str, bbox_type: str = "text") -> Dict:
         """
         Load annotations from processed JSON file and prepare data for evaluation.
+        Compatible with link_segment_to_text.py output structure.
+        
+        Handles:
+            - category_id=5 (speech_bubble): Has bubble_bbox and linked texts
+            - category_id=10 (unlinked_text): Standalone text annotations
         
         Args:
             json_path: Path to processed JSON annotation file
             images_dir: Directory containing manga images
-            bbox_type: Type of bbox to use - "text" (text bbox) or "bubble" (bubble bbox)
+            bbox_type: Type of bbox to use:
+                - "text": Use text_bbox (from text annotations)
+                - "bubble": Use bubble_bbox (from speech bubble segmentation)
             
         Returns:
             Dictionary containing:
@@ -412,6 +283,13 @@ class MangaOCREvaluator:
             # Skip if no valid text content
             if not any(text.strip() for text in ann['texts']):
                 continue
+            
+            # For bubble bbox type, only include speech bubbles (category_id=5) with bubble_bbox
+            if bbox_type == "bubble":
+                if ann.get('category_id') != 5:
+                    continue
+                if not ann.get('bubble_bbox') or len(ann['bubble_bbox']) == 0:
+                    continue
                 
             image_id = ann['image_id']
             if image_id not in image_annotations:
@@ -423,12 +301,26 @@ class MangaOCREvaluator:
         boxes_list = []
         ground_truth_texts = []
         
+        # Get manga name from images_dir to filter relevant images
+        manga_name = images_dir.name
+        
         for image_id in sorted(image_annotations.keys()):
             if image_id not in image_id_to_info:
                 continue
                 
             image_info = image_id_to_info[image_id]
-            image_path = images_dir / image_info['file_name']
+            file_name = image_info['file_name']
+            
+            # Filter: only process images belonging to the target manga
+            # file_name format: "MangaName/xxx.jpg"
+            if '/' in file_name:
+                file_manga_name, base_name = file_name.split('/', 1)
+                if file_manga_name != manga_name:
+                    continue
+                # Use only the base filename since images_dir already includes manga name
+                image_path = images_dir / base_name
+            else:
+                image_path = images_dir / file_name
             
             if not image_path.exists():
                 continue
@@ -438,17 +330,26 @@ class MangaOCREvaluator:
             texts = []
             
             for ann in annotations:
+                bbox = None
+                
                 # Choose bbox based on type
-                if bbox_type == "bubble" and 'bubble_bbox' in ann and ann['bubble_bbox']:
+                if bbox_type == "bubble":
                     # Use bubble bbox format: [xmin, ymin, xmax, ymax]
-                    bbox = ann['bubble_bbox']
-                elif 'text_bbox' in ann and ann['text_bbox']:
-                    # Use text bbox format: [xmin, ymin, xmax, ymax]
-                    bbox = ann['text_bbox']
+                    if ann.get('bubble_bbox') and len(ann['bubble_bbox']) == 4:
+                        bbox = ann['bubble_bbox']
                 else:
-                    # Fallback to standard bbox format: [x, y, w, h] -> [xmin, ymin, xmax, ymax]
-                    x, y, w, h = ann['bbox']
-                    bbox = [x, y, x + w, y + h]
+                    # Use text bbox
+                    if ann.get('text_bbox') and len(ann['text_bbox']) == 4:
+                        # text_bbox format: [xmin, ymin, xmax, ymax]
+                        bbox = ann['text_bbox']
+                    else:
+                        # Fallback to standard bbox format: [x, y, w, h] -> [xmin, ymin, xmax, ymax]
+                        if ann.get('bbox') and len(ann['bbox']) == 4:
+                            x, y, w, h = ann['bbox']
+                            bbox = [x, y, x + w, y + h]
+                
+                if bbox is None:
+                    continue
                 
                 boxes.append(bbox)
                 
