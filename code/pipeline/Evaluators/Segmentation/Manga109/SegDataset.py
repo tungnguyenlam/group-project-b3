@@ -178,8 +178,8 @@ class MangaBubbleDataset(Dataset):
                 scaled_bboxes.append([x*scale_x, y*scale_y,
                                       (x + w)*scale_x, (y + h)*scale_y])
 
-        # --- Create combined mask ---
-        mask_combined = np.zeros((orig_height, orig_width), dtype=bool)
+        
+        object_mask= []
         for ann in annos:
             seg = ann.get("segmentation", [])
             if seg:
@@ -189,14 +189,12 @@ class MangaBubbleDataset(Dataset):
                     mask_2d = mask.squeeze()
                 else:
                     mask_2d = mask
-                mask_combined = np.logical_or(mask_combined, mask_2d)
-
-        # Resize mask to target size
-        mask_resized = cv2.resize(mask_combined.astype(np.uint8),
+                mask_resized = cv2.resize(mask_2d.astype(np.uint8),
                                   (self.img_size[1], self.img_size[0]),
                                   interpolation=cv2.INTER_NEAREST)
+                mask_tensor= torch.from_numpy(mask_resized.astype(bool))
 
-        object_mask = torch.from_numpy(mask_resized.astype(np.uint8))
+            object_mask.append(mask_tensor)
 
         # Apply transform to image
         if self.transform:

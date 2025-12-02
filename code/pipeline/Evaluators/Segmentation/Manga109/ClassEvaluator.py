@@ -20,9 +20,10 @@ class ClassEvaluator():
         pred_boxes = []
         pred_probs= []
 
-        iterator = tqdm(loader, desc="Evaluating")
+        pbar = tqdm(total=len(loader), desc="Evaluating all images")
 
-        for batch_idx, (imgs, batch_gt_masks, batch_gt_bboxes) in enumerate(iterator):
+
+        for batch_idx, (imgs, batch_gt_masks, batch_gt_bboxes) in enumerate(loader):
             
             for img_idx in range(len(batch_gt_masks)):
                 all_gt_masks.append(batch_gt_masks[img_idx])
@@ -41,21 +42,24 @@ class ClassEvaluator():
                 # Mask cho 1 image - TẠO COMBINED MASK
                 if p.masks is not None:
                     binary_masks = p.masks.data > 0.5  # [N, H, W]
-                    combined_mask = binary_masks.any(dim=0)  # [H, W]
-                    img_pred_mask = combined_mask.cpu()
+                    img_pred_masks = [binary_masks[i] for i in range(binary_masks.shape[0])]
                 else:
                     H, W = imgs.shape[2], imgs.shape[3]
-                    img_pred_mask = torch.zeros((H, W), dtype=torch.bool)
+                    img_pred_masks = [torch.zeros((H, W), dtype=torch.bool)]
                 
                 # Thêm vào list chính
-                pred_masks.append(img_pred_mask)           # 1 mask per image
+                pred_masks.append(img_pred_masks)        
                 pred_boxes.append(img_pred_boxes) # 1 LIST of boxes per image
 
                 probs= p.boxes.conf.cpu().tolist()
-                pred_probs.append(probs)                
+                pred_probs.append(probs)
+                
+            pbar.update(len(imgs))
+
 
         tot_images= len(all_gt_masks)
-        tot_pred_masks= len(pred_masks)
+        tot_gt_masks= sum(len(gt_masks) for gt_masks in all_gt_masks)
+        tot_pred_masks= sum(len(masks) for masks in pred_masks)
         tot_gt_bboxes= sum(len(boxes) for boxes in all_gt_boxes)
         tot_pred_bboxes= sum(len(boxes) for boxes in pred_boxes)
         
@@ -65,6 +69,7 @@ class ClassEvaluator():
             gt_bboxes=all_gt_boxes,     # 93 items, mỗi item là [[x1,y1,x2,y2], [x1,y1,x2,y2], ...]
             pred_masks=pred_masks,      # 93 items, mỗi item là tensor [H, W]
             pred_bboxes=pred_boxes,     # 93 items, mỗi item là [[x1,y1,x2,y2], [x1,y1,x2,y2], ...]
+            pred_probs= pred_probs
         )
 
         bbox_metrics= eval_seg.eval_bbox()
@@ -74,6 +79,7 @@ class ClassEvaluator():
             'bbox_metrics': bbox_metrics,
             'mask_metrics': mask_metrics,
             'tot_images': tot_images,
+            'tot_gt_masks': tot_gt_masks,
             'tot_gt_bboxes': tot_gt_bboxes,
             'tot_pred_bboxes': tot_pred_bboxes,
             'tot_pred_masks': tot_pred_masks,
@@ -86,6 +92,7 @@ class ClassEvaluator():
         print(f"BBox metrics: {results['bbox_metrics']}\n")
         print(f"Mask metrics: {results['mask_metrics']}\n")
         print(f"Total images: {results['tot_images']}\n")
+        print(f"Total ground truth masks: {results['tot_gt_masks']}\n")
         print(f"Total ground truth bboxes: {results['tot_gt_bboxes']}\n")
         print(f"Total predicted bboxes: {results['tot_pred_bboxes']}\n")
         print(f"Total predicted masks: {results['tot_pred_masks']}")
