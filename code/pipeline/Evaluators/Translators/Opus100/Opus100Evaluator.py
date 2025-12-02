@@ -65,6 +65,7 @@ class Opus100Evaluator:
 
         model.unload_model()
             
+        # Compute metrics
         metric_cer = CharErrorRate()
         cer = metric_cer(predicted, expected)
         
@@ -75,8 +76,11 @@ class Opus100Evaluator:
         bleu_formatted_refs = [[ref] for ref in expected]       # Since we have 1 ref per item, we wrap it: [ref] -> [[ref]]
         bleu = metric_bleu(predicted, bleu_formatted_refs)
 
-        metric_chrf = CHRFScore(n_char_order=6, n_word_order=2) # n_char_order=6, n_word_order=2 is standard "chrF++"
+        metric_chrf = CHRFScore(n_char_order=6, n_word_order=0) # n_char_order=6, n_word_order=2 is standard "chrF++"
         chrf = metric_chrf(predicted, bleu_formatted_refs)      # CHRF also expects [[ref]] format
+        
+        metric_chrf_pp = CHRFScore(n_char_order=6, n_word_order=2) # n_char_order=6, n_word_order=2 is standard "chrF++"
+        chrf_pp = metric_chrf_pp(predicted, bleu_formatted_refs)      # CHRF also expects [[ref]] format
 
         self.bert_scorer = BERTScore(lang="en", rescale_with_baseline=False)
         self.bert_scorer.to(device)
@@ -84,13 +88,15 @@ class Opus100Evaluator:
         self.bert_scorer.update(predicted, expected)
         bert_results = self.bert_scorer.compute()
         bert_f1 = bert_results['f1'].mean()
+        
 
         metrics_data = [
             ["Character Error Rate (CER)", f"{cer.item():.4f}"],
             ["Word Error Rate (WER)", f"{wer.item():.4f}"],
             ["BLEU Score", f"{bleu.item():.4f}"],
-            ["chrF Score", f"{chrf.item():.4f}"],      # New
-            ["BERTScore F1", f"{bert_f1.item():.4f}"]  # New
+            ["crf Score", f"{chrf.item():.4f}"],
+            ["chrF++ Score", f"{chrf_pp.item():.4f}"],     
+            ["BERTScore F1", f"{bert_f1.item():.4f}"] 
         ]
         
         print("\n" + '='*60)
@@ -103,5 +109,6 @@ class Opus100Evaluator:
             "wer": wer.item(),
             "bleu": bleu.item(),
             "chrf": chrf.item(),
+            "chrf_pp": chrf_pp.item(),
             "bertscore": bert_f1.item()
         }
