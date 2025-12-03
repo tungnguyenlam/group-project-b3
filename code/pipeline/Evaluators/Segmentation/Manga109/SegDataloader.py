@@ -25,7 +25,7 @@ def manga_collate_fn(batch):
 
 class MangaBubbleDataLoader(DataLoader):
     
-    def __init__(self, json_file, img_dir, img_size, batch_size=4, shuffle=False, num_workers= 2, transform=None):
+    def __init__(self, json_file, img_dir, img_size, batch_size=4, shuffle=False, num_workers= 0, transform=None):
         self.dataset = MangaBubbleDataset(json_file, img_dir, img_size, transform)
         self.batch_size = batch_size
         self.shuffle = shuffle
