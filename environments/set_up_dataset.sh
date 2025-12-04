@@ -34,10 +34,20 @@ else
     echo "./data/Manga109_released_2023_12_07 already exists, skipping download."
 fi
 
-if [ ! -d ./data/Human_Annotate_300 ]; then
-    gdown --fuzzy "https://drive.google.com/file/d/1nekCTGInk57Oe2cZvOjO7RRkUpS2mevw/view?usp=sharing" -O ./data/Human_Annotate_300.zip 
-    unzip -o ./data/Human_Annotate_300.zip -d ./data/
-    rm ./data/Human_Annotate_300.zip
-else
-    echo "./data/Human_Annotate_300 already exists, skipping download."
-fi
+# if [ ! -d ./data/Manga109s_released_2023_12_07 ]; then
+#     hf download hal-utokyo/Manga109-s --repo-type dataset --include Manga109s_released_2023_12_07.zip --local-dir ./data --token $HF_TOKEN
+#     unzip ./data/Manga109s_released_2023_12_07.zip -d ./data
+#     rm ./data/Manga109s_released_2023_12_07.zip
+#     rm -rf ./data/.cache
+#     rm -rf ./data/__MACOSX
+# else
+#     echo "./data/Manga109s_released_2023_12_07 already exists, skipping download."
+# fi
+
+# if [ ! -d ./data/Human_Annotate_300 ]; then
+#     gdown --fuzzy "https://drive.google.com/file/d/1nekCTGInk57Oe2cZvOjO7RRkUpS2mevw/view?usp=sharing" -O ./data/Human_Annotate_300.zip 
+#     unzip -o ./data/Human_Annotate_300.zip -d ./data/
+#     rm ./data/Human_Annotate_300.zip
+# else
+#     echo "./data/Human_Annotate_300 already exists, skipping download."
+# fi
