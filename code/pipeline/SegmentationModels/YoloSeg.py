@@ -23,13 +23,15 @@ def plot_image(ax, image, boxes, plot_bbox = True):
 
 
 class YoloSeg:
-    def __init__(self, model_pt_path: str, device):
+    def __init__(self, model_pt_path: str, device, verbose):
         if not os.path.exists(model_pt_path):
             raise FileNotFoundError("Model path is not exist")
         else:
             self.model_pt_path = model_pt_path
             self.model = None
             self.device= device
+            self.verbose = verbose 
+
 
     def load_model(self):
         try:
@@ -38,9 +40,10 @@ class YoloSeg:
         except:
             print("Model path is not valid")
 
-    def predict(self, imgs, device):
+    def predict(self, imgs, device, verbose):
+        verbose= self.verbose
         device= self.device
-        results = self.model.predict(imgs, device= device)
+        results = self.model.predict(imgs, device= device, verbose= verbose)
         return results
 
 

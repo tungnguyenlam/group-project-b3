@@ -14,8 +14,7 @@ class ClassEvaluator():
             self.device= 'cpu'
         else:
             self.device= device
-
-
+            
     def visualize_image(self, img_tensor, masks, boxes, alpha=0.5):
         """
         Visualize a single image with all predicted masks overlaid and bounding boxes.
@@ -81,7 +80,7 @@ class ClassEvaluator():
                 all_gt_masks.append(batch_gt_masks[img_idx])
                 all_gt_boxes.append(batch_gt_bboxes[img_idx])  # Đây đã là list của lists [[x1,y1,x2,y2], ...]
             
-            results = model.predict(imgs, device= device)
+            results = model.predict(imgs, device= device, verbose=False)
 
             for p in results:
                 # Boxes cho 1 image - LƯU TOÀN BỘ LIST
@@ -105,7 +104,8 @@ class ClassEvaluator():
 
                 probs= p.boxes.conf.cpu().tolist()
                 pred_probs.append(probs)
-                
+
+            """
             global_idx_start = batch_idx * len(imgs)
             rand_local_idx = random.randint(0, len(imgs)-1)
             rand_global_idx = global_idx_start + rand_local_idx
@@ -115,6 +115,7 @@ class ClassEvaluator():
                 pred_masks[rand_global_idx],
                 pred_boxes[rand_global_idx]
             )
+            """
             pbar.update(len(imgs))
 
 
