@@ -16,7 +16,7 @@ else
     echo "./data/MangaSegmentation already exists, skipping download."
 fi
 
-if [[ ! -d ./data/MangaSegmentation/json_processed ]]; then
+if [[ ! -d ./data/MangaSegmentation/jsons_processed ]]; then
     gdown --fuzzy "https://drive.google.com/file/d/1IvwKFzQgSkDpJQT69wpHlChkhBtfm_p3/view?usp=sharing" -O ./data/MangaSegmentation/jsons_processed.zip
     unzip -o ./data/MangaSegmentation/jsons_processed.zip -d ./data/MangaSegmentation/
     rm ./data/MangaSegmentation/jsons_processed.zip
@@ -32,6 +32,13 @@ if [ ! -d ./data/Manga109_released_2023_12_07 ]; then
     rm -rf ./data/__MACOSX
 else
     echo "./data/Manga109_released_2023_12_07 already exists, skipping download."
+fi
+
+if [ ! -d ./data/open-mantra-dataset ]; then
+    git clone https://github.com/mantra-inc/open-mantra-dataset.git ./data/open-mantra-dataset
+    rm -rf ./data/open-mantra-dataset/.git/
+else
+    echo "./data/open-mantra-dataset already exists, skipping download."
 fi
 
 # if [ ! -d ./data/Manga109s_released_2023_12_07 ]; then
