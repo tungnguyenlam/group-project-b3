@@ -122,33 +122,26 @@ class ClassEvaluator():
             for img_idx in range(len(batch_gt_masks)):
                 all_gt_masks.append(batch_gt_masks[img_idx])
                 all_gt_boxes.append(batch_gt_bboxes[img_idx])  # Đây đã là list của lists [[x1,y1,x2,y2], ...]
-            
-            results = model.predict(imgs, device= device, verbose=False)
+                
+                img_rgb= imgs[img_idx]
+                img_rgb = img_rgb.unsqueeze(0) if img_rgb.dim() == 3 else img_rgb
+                
+                image_rgb, bboxes, masks_tensor, probs= model.predict(img_rgb, device= 'cpu', print_bbox = False, plot = False, plot_bbox= False, verbose= False)
 
-            for p in results:
-                # Boxes cho 1 image - LƯU TOÀN BỘ LIST
-                img_pred_boxes = []
-                img_probs= []
-                
-                for pb in p.boxes.xyxy.cpu().numpy():
-                    img_pred_boxes.append(pb.tolist())  # Thêm từng box vào list
-                
-                # Mask cho 1 image - TẠO COMBINED MASK
-                if p.masks is not None:
-                    binary_masks = p.masks.data > 0.5  # [N, H, W]
-                    img_pred_masks = [binary_masks[i] for i in range(binary_masks.shape[0])]
+                img_pred_masks= []
+            # bbox của predict đã ở dạng mong muốn
+                pred_boxes.append(bboxes) # 1 LIST of boxes per image
+                pred_probs.append(probs)
+                if masks_tensor is not None:
+                    binary_masks= masks_tensor >0.5
+                    img_pred_masks= [binary_masks[i] for i in range(binary_masks.shape[0])]
                 else:
                     H, W = imgs.shape[2], imgs.shape[3]
                     img_pred_masks = [torch.zeros((H, W), dtype=torch.bool)]
-                
-                # Thêm vào list chính
-                pred_masks.append(img_pred_masks)        
-                pred_boxes.append(img_pred_boxes) # 1 LIST of boxes per image
 
-                probs= p.boxes.conf.cpu().tolist()
-                pred_probs.append(probs)
+                pred_masks.append(img_pred_masks)
+                       
 
-            """
             global_idx_start = batch_idx * len(imgs)
             rand_local_idx = random.randint(0, len(imgs)-1)
             rand_global_idx = global_idx_start + rand_local_idx
@@ -158,7 +151,7 @@ class ClassEvaluator():
                 pred_masks[rand_global_idx],
                 pred_boxes[rand_global_idx]
             )
-            """
+    
             pbar.update(len(imgs))
 
 

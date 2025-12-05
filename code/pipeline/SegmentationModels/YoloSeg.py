@@ -14,11 +14,42 @@ def plot_patch(ax, x, y, width, height):
     return ax
 
 
-def plot_image(ax, image, boxes, plot_bbox = True):
-    ax.imshow(image)
-    if plot_bbox:
-        for box in boxes:
-            ax = plot_patch(ax, box[0], box[1], box[2]-box[0], box[3]-box[1])
+def plot_image(ax, image, boxes, masks, plot_bbox=True, alpha=0.4):
+    # --- convert image to numpy ---
+    if isinstance(image, torch.Tensor):
+        img = image.permute(1, 2, 0).cpu().numpy()
+    else:
+        img = image
+
+    if img.max() > 1.0:
+        img = img / 255.0
+        
+    ax.imshow(img)
+
+    # --- plot bounding boxes ---
+    if plot_bbox and boxes is not None and len(boxes) > 0:
+        for box in boxes:  # box = [x1,y1,x2,y2]
+            ax = plot_patch(ax, box[0], box[1], box[2] - box[0], box[3] - box[1])
+
+    # --- plot segmentation masks ---
+    if masks is not None and len(masks) > 0:
+        overlay = np.zeros_like(img)
+        h, w = img.shape[:2]
+
+        for mask in masks:
+            # Resize từng mask về đúng kích thước ảnh
+            mask_resized = cv2.resize(
+                mask.astype(np.uint8), 
+                (w, h), 
+                interpolation=cv2.INTER_NEAREST
+            ).astype(bool)
+
+            color = np.random.rand(3)
+            overlay += np.where(mask_resized[..., None], color, 0)
+
+        overlay = np.clip(overlay, 0, 1)
+        ax.imshow(overlay, alpha=alpha)
+
     return ax
 
 
@@ -40,13 +71,38 @@ class YoloSeg:
         except:
             print("Model path is not valid")
 
-    def predict(self, imgs, device, verbose):
+    def predict(self, imgs, device, verbose, print_bbox: bool= False, plot: bool= False, plot_bbox= False):
+        
         verbose= self.verbose
         device= self.device
         results = self.model.predict(imgs, device= device, verbose= verbose)
-        return results
+        result= results[0]
+        
+        list_bboxes= []
+        
+        boxes= result.boxes.xyxy.cpu().numpy().astype(float) 
+        for box in boxes: 
+            list_bboxes.append(box.tolist())  
+            
+        masks= result.masks.data.cpu().numpy().astype(bool) 
+        masks_tensor= result.masks.data
+        probs= result.boxes.conf.cpu()
+        
+        if print_bbox:
+            print(list_bboxes)
 
+        if plot:
+        # result.orig_img is BGR numpy, convert to RGB
+            orig_img = result.orig_img
+            img_rgb = orig_img[:, :, ::-1]  
 
+            fig, ax = plt.subplots(1,1)
+            ax = plot_image(ax, img_rgb, list_bboxes, masks, plot_bbox=plot_bbox)
+            plt.show()
+        
+        return result.orig_img, list_bboxes, masks_tensor, probs
+
+    """
     def predict_debug(self, image_path: str, print_bbox: bool = False, plot: bool = False, plot_bbox = True):
             if self.model is None: # Use 'is None' for comparison
                 raise ValueError("Model has not been loaded successfully")
@@ -86,7 +142,7 @@ class YoloSeg:
                         ax.plot()
         
                 return img_rgb, boxes, masks
-
+    """
     def unload_model(self):
         if self.model == None:
             print("The model is not loaded yet")
