@@ -140,8 +140,8 @@ class ClassEvaluator():
                     img_pred_masks = [torch.zeros((H, W), dtype=torch.bool)]
 
                 pred_masks.append(img_pred_masks)
-                       
 
+            """
             global_idx_start = batch_idx * len(imgs)
             rand_local_idx = random.randint(0, len(imgs)-1)
             rand_global_idx = global_idx_start + rand_local_idx
@@ -151,6 +151,7 @@ class ClassEvaluator():
                 pred_masks[rand_global_idx],
                 pred_boxes[rand_global_idx]
             )
+            """
     
             pbar.update(len(imgs))
 
