@@ -14,7 +14,7 @@ def plot_patch(ax, x, y, width, height):
     return ax
 
 
-def plot_image(ax, image, boxes, masks, plot_bbox=True, alpha=0.4):
+def plot_image(ax, image, boxes, plot_bbox=True, alpha=0.4):
     # --- convert image to numpy ---
     if isinstance(image, torch.Tensor):
         img = image.permute(1, 2, 0).cpu().numpy()
@@ -31,6 +31,7 @@ def plot_image(ax, image, boxes, masks, plot_bbox=True, alpha=0.4):
         for box in boxes:  # box = [x1,y1,x2,y2]
             ax = plot_patch(ax, box[0], box[1], box[2] - box[0], box[3] - box[1])
 
+    """
     # --- plot segmentation masks ---
     if masks is not None and len(masks) > 0:
         overlay = np.zeros_like(img)
@@ -49,7 +50,8 @@ def plot_image(ax, image, boxes, masks, plot_bbox=True, alpha=0.4):
 
         overlay = np.clip(overlay, 0, 1)
         ax.imshow(overlay, alpha=alpha)
-
+    """
+    
     return ax
 
 
@@ -84,7 +86,7 @@ class YoloSeg:
         for box in boxes: 
             list_bboxes.append(box.tolist())  
             
-        masks= result.masks.data.cpu().numpy().astype(bool) 
+        #masks= result.masks.data.cpu().numpy().astype(bool) 
         masks_tensor= result.masks.data
         probs= result.boxes.conf.cpu()
         
@@ -97,7 +99,7 @@ class YoloSeg:
             img_rgb = orig_img[:, :, ::-1]  
 
             fig, ax = plt.subplots(1,1)
-            ax = plot_image(ax, img_rgb, list_bboxes, masks, plot_bbox=plot_bbox)
+            ax = plot_image(ax, img_rgb, list_bboxes, plot_bbox=plot_bbox)
             plt.show()
         
         return result.orig_img, list_bboxes, masks_tensor, probs
