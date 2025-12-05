@@ -10,5 +10,3 @@ models/
 
 *.ipynb_checkpoints/
 *.DS_Store
-
-*.json
