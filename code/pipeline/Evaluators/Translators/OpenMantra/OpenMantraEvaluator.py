@@ -1,18 +1,16 @@
-import sys
-import os
 import json
-import gc
 from PIL import Image
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any, Union
-
 import torch
 from torch.utils.data import Dataset, DataLoader
-from torchmetrics.text import CharErrorRate, WordErrorRate, BLEUScore, SacreBLEUScore, CHRFScore
-from torchmetrics.text.bert import BERTScore
+import os
+import sys
 from tqdm.auto import tqdm
-from tabulate import tabulate
+sys.path.insert(0, os.path.join(os.getcwd(), '..'))
 
+from evals_utils.utils import save_output_to_json, save_metrics_to_json, print_tabulate_results
+from TranslationEvaluator import TranslationEvaluator
 
 class OpenMantraDataset(Dataset):
     """
@@ -219,29 +217,7 @@ class OpenMantraImageDataset(Dataset):
         return src_texts, tgt_texts
 
 
-class OpenMantraEvaluator:
-    """
-    Evaluator for translation models using the OpenMantra manga translation dataset.
-    
-    Processes one page at a time (batch_size invariant for translation model).
-    Each page contains multiple text bubbles with preserved order.
-    
-    Metrics computed:
-        - Character Error Rate (CER)
-        - Word Error Rate (WER)
-        - BLEU Score
-        - SacreBLEU Score
-        - chrF Score
-        - chrF++ Score
-        - BERTScore F1
-    
-    Args:
-        openmantra_root: Path to the OpenMantra dataset root directory.
-        source_lang: Source language key. Default: 'text_ja' (Japanese)
-        target_lang: Target language key. Default: 'text_en' (English)
-        book_titles: Optional list of book titles to filter. None = use all books.
-    """
-    
+class OpenMantraEvaluator(TranslationEvaluator):
     def __init__(self,
         openmantra_root: str,
         source_lang: str = 'text_ja',
@@ -252,27 +228,8 @@ class OpenMantraEvaluator:
         self.source_lang = source_lang
         self.target_lang = target_lang
         self.book_titles = book_titles
-    
-    def evaluate(
-        self,
-        model,
-        model_name: str,
-        device: str = 'cpu',
-        verbose: bool = True
-    ) -> Dict[str, float]:
-        """
-        Evaluate a translation model on the OpenMantra dataset.
-        
-        Args:
-            model: Translation model with predict(List[str]) -> List[str] method.
-                   Model should already be loaded before calling evaluate.
-            device: Device for BERTScore computation. Default: 'cpu'
-            verbose: If True, print sample predictions. Default: True
-            
-        Returns:
-            Dictionary with metric values
-        """
-        # Load dataset
+
+    def get_dataset(self):
         base_dataset = OpenMantraDataset(
             root_dir=self.openmantra_root,
             book_titles=self.book_titles
@@ -282,84 +239,28 @@ class OpenMantraEvaluator:
             source_lang=self.source_lang,
             target_lang=self.target_lang
         )
+        return eval_dataset
+
+    def get_dataloader(self, batch_size=1):
+        eval_dataset = self.get_dataset()
+        eval_dataloader = DataLoader(eval_dataset, batch_size=1, shuffle=False)
+        return eval_dataloader
+
+    def run_inference(self, model, dataloader, save_dir: Optional[str] = None, save_steps: int = 50):
+        source_texts = []
+        expected = []
+        predicted = []
         
-        all_expected = []
-        all_predicted = []
+        dataset = self.get_dataset()  # Use dataset directly, not dataloader
         
-        print(f"Starting OpenMantra evaluation...")
-        print(f"Dataset size: {len(eval_dataset)} pages")
-        
-        for i in tqdm(range(len(eval_dataset))):
-            src_texts, tgt_texts = eval_dataset[i]
+        for i in tqdm(range(len(dataset))):
+            src_texts, tgt_texts = dataset[i]  # Returns clean lists directly
             
-            # Translate all bubbles from this page
             predicted_texts = model.predict(src_texts)
-            
-            if verbose and i % 10 == 0:
-                print(f"\n--- Page {i} ---")
-                for src, tgt, pred in zip(src_texts, tgt_texts, predicted_texts):
-                    print(f"  Src: {src}")
-                    print(f"  Tgt: {tgt}")
-                    print(f"  Pred: {pred}")
-                    print()
-            
-            all_expected.extend(tgt_texts)
-            all_predicted.extend(predicted_texts)
-        
-        # Compute metrics
-        metric_cer = CharErrorRate()
-        cer = metric_cer(all_predicted, all_expected)
-        
-        metric_wer = WordErrorRate()
-        wer = metric_wer(all_predicted, all_expected)
-        
-        # BLEU expects references as [[ref1], [ref2], ...]
-        bleu_formatted_refs = [[ref] for ref in all_expected]
-        
-        metric_bleu = BLEUScore()
-        bleu = metric_bleu(all_predicted, bleu_formatted_refs)
-        
-        sacre_bleu = SacreBLEUScore()
-        sacre_bleu_score = sacre_bleu(all_predicted, bleu_formatted_refs)
-        
-        metric_chrf = CHRFScore(n_char_order=6, n_word_order=0)
-        chrf = metric_chrf(all_predicted, bleu_formatted_refs)
-        
-        metric_chrf_pp = CHRFScore(n_char_order=6, n_word_order=2)
-        chrf_pp = metric_chrf_pp(all_predicted, bleu_formatted_refs)
-        
-        bert_scorer = BERTScore(lang="en", rescale_with_baseline=False, device=device, verbose=verbose)
-        bert_scorer.reset()
-        bert_scorer.update(all_predicted, all_expected)
-        bert_results = bert_scorer.compute()
-        bert_f1 = bert_results['f1'].mean()
-        
-        if verbose:
-            metrics_data = [
-                ["Character Error Rate (CER)", f"{cer.item():.4f}"],
-                ["Word Error Rate (WER)", f"{wer.item():.4f}"],
-                ["BLEU Score", f"{bleu.item():.4f}"],
-                ["SacreBLEU Score", f"{sacre_bleu_score.item():.4f}"],
-                ["chrF Score", f"{chrf.item():.4f}"],
-                ["chrF++ Score", f"{chrf_pp.item():.4f}"],
-                ["BERTScore F1", f"{bert_f1.item():.4f}"]
-            ]
-            
-            print("\n" + '=' * 60)
-            print(f"OPENMANTRA EVALUATION METRICS ON {model_name} ON {len(all_expected)} EXAMPLES")
-            print(tabulate(metrics_data, headers=["Metric", "Value"], tablefmt="heavy_outline"))
-            print('=' * 60)
-        
-        # Cleanup
-        del metric_cer, metric_wer, metric_bleu, sacre_bleu, metric_chrf, metric_chrf_pp, bert_scorer
-        gc.collect()
-        
-        return {
-            "cer": cer.item(),
-            "wer": wer.item(),
-            "bleu": bleu.item(),
-            "sacrebleu": sacre_bleu_score.item(),
-            "chrf": chrf.item(),
-            "chrf_pp": chrf_pp.item(),
-            "bertscore": bert_f1.item()
-        }
+            source_texts.extend(src_texts)
+            expected.extend(tgt_texts)
+            predicted.extend(predicted_texts)
+
+            if save_dir is not None and i % save_steps == 0:
+                save_output_to_json(source_texts, expected, predicted, save_dir)
+        return source_texts, expected, predicted

@@ -1,13 +1,18 @@
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-from typing import List, Union
+from typing import List
 import torch
 import gc
 
-class ElanMtJaEnBatchTranslator:
+from .Translator import Translator
+
+
+class ElanMtJaEnBatchTranslator(Translator):
     def __init__(self):
+        super().__init__()
         self.model = None
         self.tokenizer = None
         self.device = None
+        self.model_name = None
 
     def load_model(self, device='auto', elan_model='tiny'):
         if self.model is None:
@@ -24,60 +29,55 @@ class ElanMtJaEnBatchTranslator:
                 'base': 'Mitsua/elan-mt-base-ja-en',
                 'tiny': 'Mitsua/elan-mt-tiny-ja-en'
             }
-            
+
             if elan_model not in model_map:
                 raise ValueError(f"Invalid elan model: {elan_model}, please choose from 'bt', 'base', 'tiny'")
-            
-            model_name = model_map[elan_model]
+
+            self.model_name = model_map[elan_model]
             self.device = device
-            
-            print(f"Loading {model_name} to {self.device}...")
-            self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-            self.model = AutoModelForSeq2SeqLM.from_pretrained(model_name).to(self.device)
-            
+
+            print(f"Loading {self.model_name} to {self.device}...")
+            self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+            self.model = AutoModelForSeq2SeqLM.from_pretrained(self.model_name).to(self.device)
+
             self.model.eval()
         else:
             print("Model is already loaded")
-        
-    def predict(self, source_texts: Union[str, List[str]]) -> List[str]:
+
+    def _translate(self, texts: List[str]) -> List[str]:
         if self.model is None:
             raise ValueError("Model not loaded. Call load_model() first.")
-        
-        if isinstance(source_texts, str):
-            source_texts = [source_texts]
-            
+
         inputs = self.tokenizer(
-            source_texts, 
-            return_tensors="pt", 
-            padding=True, 
+            texts,
+            return_tensors="pt",
+            padding=True,
             truncation=True,
-            max_length=512
+            max_length=256
         ).to(self.device)
-        
+
         with torch.no_grad():
             generated_tokens = self.model.generate(
-                **inputs, 
+                **inputs,
                 max_new_tokens=128
             )
-            
-        translated_texts = self.tokenizer.batch_decode(
-            generated_tokens, 
+
+        return self.tokenizer.batch_decode(
+            generated_tokens,
             skip_special_tokens=True
         )
-        
-        return translated_texts
 
     def unload_model(self):
         del self.model
         del self.tokenizer
         self.model = None
         self.tokenizer = None
-        
+
         gc.collect()
-        
+
         if self.device and 'cuda' in str(self.device):
             torch.cuda.empty_cache()
         elif self.device and 'mps' in str(self.device):
-             torch.mps.empty_cache()
+            torch.mps.empty_cache()
 
         print("Model unloaded")

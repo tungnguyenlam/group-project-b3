@@ -1,8 +1,8 @@
-from typing import List, Union
+from typing import List
 
 from .LLMTranslator import LLMTranslator
 
-# Per-image specific system prompt for context-aware manga translation
+
 DEFAULT_SYS_PROMPT = """You are a manga translator. You translate Japanese dialogue bubbles to natural English.
 
 You will receive a manga page with numbered dialogue bubbles in reading order (right-to-left, top-to-bottom).
@@ -35,16 +35,6 @@ DEFAULT_BAD_PHRASES = [
 
 
 def format_input_with_context(source_texts: List[str], target_index: int) -> str:
-    """
-    Format input for a single bubble with full page context.
-    
-    Args:
-        source_texts: List of all Japanese texts from the page (in bubble order)
-        target_index: Index of the bubble to translate (0-indexed)
-        
-    Returns:
-        Formatted prompt string with context and marked target
-    """
     lines = ["Page context:"]
     for i, text in enumerate(source_texts):
         if i == target_index:
@@ -56,89 +46,32 @@ def format_input_with_context(source_texts: List[str], target_index: int) -> str
 
 
 def format_input_batch(source_texts: List[str]) -> List[str]:
-    """
-    Format inputs for all bubbles in a page, each with full context.
-    
-    Args:
-        source_texts: List of all Japanese texts from the page (in bubble order)
-        
-    Returns:
-        List of formatted prompts, one per bubble
-    """
     return [format_input_with_context(source_texts, i) for i in range(len(source_texts))]
 
 
 class LLMPerImageTranslator(LLMTranslator):
-    """
-    LLM Translator that translates manga bubbles with page context.
-    
-    Unlike the base LLMTranslator which translates texts independently,
-    this class provides context from all bubbles on a page when translating
-    each individual bubble, improving translation coherence.
-    """
-    
     def __init__(self):
         super().__init__()
-        # Override defaults specific to per-image translation
         self.system_prompt: str = DEFAULT_SYS_PROMPT
         self.bad_phrases: List[str] = DEFAULT_BAD_PHRASES
-        # Default to single for memory safety on MPS (context prompts are larger)
         self.use_batch: bool = False
 
-    def predict_single(self, source_texts: List[str], target_index: int) -> str:
-        """
-        Translate a single bubble with page context.
-        
-        Args:
-            source_texts: List of all Japanese texts from the page
-            target_index: Index of the bubble to translate
-            
-        Returns:
-            English translation for the target bubble
-        """
-        if self.model is None:
-            raise ValueError("Model not loaded. Call load_model() first.")
-        
+    def _translate_single(self, source_texts: List[str], target_index: int) -> str:
         formatted = format_input_with_context(source_texts, target_index)
-        # Use parent's _generate with a single-item list
         result = self._generate([formatted])
         return result[0]
 
-    def batch_predict(self, source_texts: List[str]) -> List[str]:
-        """
-        Translate all bubbles from a page in one batch.
-        
-        Args:
-            source_texts: List of all Japanese texts from the page
-            
-        Returns:
-            List of English translations for all bubbles
-        """
-        if self.model is None:
-            raise ValueError("Model not loaded. Call load_model() first.")
-        
+    def _translate_batch(self, source_texts: List[str]) -> List[str]:
         if not source_texts:
             return []
-            
         formatted = format_input_batch(source_texts)
         return self._generate(formatted)
 
-    def predict(self, source_texts: Union[str, List[str]]) -> List[str]:
-        """
-        Main predict method used by evaluators.
-        Behavior controlled by self.use_batch flag.
-        
-        Args:
-            source_texts: List of Japanese texts from one page
-            
-        Returns:
-            List of translations (same length as source_texts)
-        """
-        if isinstance(source_texts, str):
-            source_texts = [source_texts]
-        
+    def _translate(self, texts: List[str]) -> List[str]:
+        if self.model is None:
+            raise ValueError("Model not loaded. Call load_model() first.")
+
         if self.use_batch:
-            return self.batch_predict(source_texts)
+            return self._translate_batch(texts)
         else:
-            # Translate one by one (safer for MPS memory)
-            return [self.predict_single(source_texts, i) for i in range(len(source_texts))]
+            return [self._translate_single(texts, i) for i in range(len(texts))]
