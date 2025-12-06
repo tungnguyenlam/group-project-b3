@@ -12,6 +12,7 @@ model_dir_dict = {
     'detectron2': os.path.join(MODEL_DIR, 'detectron2', 'output_balloon_segmentation_v3'),
     'deeplabv3': os.path.join(MODEL_DIR, 'DEEPLABv3'),
     'unet': os.path.join(MODEL_DIR, 'UNET')
+    #'yolo_ultralytics': os.path.join(MODEL_DIR, 'YOLO_Ultralytics')
 }
 
 path_file_dict = {
@@ -19,6 +20,7 @@ path_file_dict = {
     'detectron2': "https://drive.google.com/file/d/1JXJ99PFviYwB4PENSkDUcSuzIMy65qUi/view?usp=sharing",
     'deeplabv3': "https://drive.google.com/file/d/1DqqjKqS8Sgc08TWfjkApU3yumHJq37fP/view?usp=sharing",
     'unet': "https://drive.google.com/file/d/107dMAAXMIk3WNWLxENAZpiy7lrovEoXZ/view?usp=sharing"
+    #'yolo_ultralytics': "https://drive.google.com/file/d/1mDxIEoZv0ilacEC6lUAz5-RFeAV--bwJ/view?usp=sharing"
 }
 
 output_filename_dict = {
@@ -26,6 +28,7 @@ output_filename_dict = {
     'detectron2': 'model_final.pth',
     'deeplabv3': 'best_deeplabv3_model.pth',
     'unet': 'best_unet_model.pth'
+    #'yolo_ultralytics': 'super_yolo.pt'
 }
 
 for key in model_dir_dict.keys():
